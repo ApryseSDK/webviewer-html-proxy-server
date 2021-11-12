@@ -4,12 +4,12 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 
-function createServer (SERVER_ROOT, PORT) {
+function createServer(SERVER_ROOT, PORT) {
   console.log('createServer', SERVER_ROOT, PORT);
-  
+
   const app = express();
   app.use(cors());
-  
+
   const PATH = `${SERVER_ROOT}:${PORT}`;
 
   const isValidURL = (url) => {
