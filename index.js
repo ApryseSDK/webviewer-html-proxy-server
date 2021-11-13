@@ -104,7 +104,7 @@ function createServer(SERVER_ROOT, PORT) {
     const page = await browser.newPage();
     // check again here to avoid server being blown up, tested with saving github
     try {
-      await page.goto(`http://${PATH}`, {
+      await page.goto(`${PATH}`, {
         waitUntil: 'networkidle0'
       });
       const buffer = await page.screenshot({ type: 'png', fullPage: true });
