@@ -48,6 +48,10 @@ function createServer(SERVER_ROOT, PORT) {
   var url;
   var dimensions;
   var urlExists;
+  var selectionData;
+
+  var browser;
+  var page;
 
   app.get('/pdftron-proxy', async function (req, res, next) {
     // this is the url retrieved from the input
@@ -65,47 +69,200 @@ function createServer(SERVER_ROOT, PORT) {
       ***********************************************************************
     `);
 
-      const browser = await puppeteer.launch({
-        defaultViewport,
-        headless: true,
-      });
-      const page = await browser.newPage();
+      if (!browser?.isConnected()) {
+        browser = await puppeteer.launch({
+          product: 'chrome',
+          defaultViewport,
+          headless: true,
+          ignoreHTTPSErrors: true,
+        });
+
+        page = await browser.newPage();
+        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+      }
 
       // ****** second check for puppeteer being able to goto url
       try {
         urlExists = await page.goto(url, {
-          waitUntil: 'networkidle0'
+          // use 'domcontentloaded' https://github.com/puppeteer/puppeteer/issues/1666
+          waitUntil: 'domcontentloaded',
         });
         // Get the "viewport" of the page, as reported by the page.
         dimensions = await page.evaluate(() => {
           return {
-            width: document.body.clientWidth,
-            height: document.body.clientHeight,
+            width: document.body.scrollWidth || document.body.clientWidth,
+            height: document.body.scrollHeight || document.body.clientHeight,
           };
         });
         // next("router") pass control to next route and strip all req.query, if queried url contains nested route this will be lost in subsequest requests
+        console.log('urlExists', urlExists.url())
         next();
       } catch (err) {
-        console.log(err);
+        console.log('/pdftron-proxy', err);
         res.status(999).send({ data: 'Please enter a valid URL and try again.' });
       }
 
-      await browser.close();
+      // await browser.close();
+    }
+  });
 
+  // need to be placed before app.use('/');
+  app.get('/pdftron-text-data', async (req, res) => {
+    try {
+      await page.goto(`${PATH}`, {
+        waitUntil: 'domcontentloaded',
+      });
+
+      selectionData = await page.evaluate(() => {
+        const getSelectionData = (pageBody) => {
+          const struct = [0];
+          const offsets = [];
+          const quads = [];
+          const str = traverseTextNode(pageBody, struct, offsets, quads, "");
+
+          return { struct, str, offsets, quads };
+        }
+
+        const isInvalidNode = (node) => {
+          return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
+        }
+
+        const traverseTextNode = (parentNode, struct, offsets, quads, str) => {
+          const range = document.createRange();
+          parentNode.childNodes.forEach(child => {
+            if (isInvalidNode(child))
+              return;
+            if (child.nodeType === Node.TEXT_NODE) {
+              const cText = child.textContent;
+              const cTextLength = cText.length;
+              const isValidText = Array.from(cText).filter(c => !(c === '\n' || c === ' ' || c === '\t')).length > 0;
+              if (cTextLength === 0 || !isValidText)
+                return;
+
+              const cQuads = [];
+              const origQuadsOffset = quads.length / 8;
+              const lines = [];
+              let canAppendWord = false;
+              let lineBreakCount = 0;
+
+              for (let i = 0; i < cTextLength; i++) {
+                // quads
+                range.setStart(child, i);
+                range.setEnd(child, i + 1);
+                const { bottom, top, left, right } = range.getBoundingClientRect();
+                cQuads.push(left, bottom, right, bottom, right, top, left, top);
+                // offsets
+                const curChar = cText[i];
+                if (curChar === ' ') {
+                  offsets.push(-1);
+                } else if (curChar === '\n') {
+                  offsets.push(-2);
+                } else {
+                  offsets.push(offsets.length * 2);
+                }
+                // Build lines
+                if (curChar === ' ' || curChar === '\n') {
+                  canAppendWord = false;
+                  str += curChar;
+                  continue;
+                }
+                const j = i + lineBreakCount;
+                if (lines.length === 0 || Math.abs(cQuads[8 * (j - 1) + 1] - cQuads[8 * j + 1]) > 0.1) {
+                  // Add extra line break if needed
+                  if (lines.length !== 0) {
+                    const prevChar = cText[i - 1];
+                    if (!(prevChar === ' ' || prevChar === '\n')) {
+                      str += '\n';
+                      cQuads.push(...cQuads.slice(-8));
+                      offsets.push(offsets[offsets.length - 1]);
+                      offsets[offsets.length - 2] = -2;
+                      lineBreakCount++;
+                    }
+                  }
+                  // Create new line
+                  lines.push([[i + lineBreakCount]]);
+                  canAppendWord = true;
+                } else {
+                  const words = lines[lines.length - 1];
+                  if (canAppendWord) {
+                    // Append to last word
+                    words[words.length - 1].push(j);
+                  } else {
+                    // Create new word
+                    words.push([j]);
+                    canAppendWord = true;
+                  }
+                }
+                str += curChar;
+              }
+
+              quads.push(...cQuads);
+
+              // Add extra line break if needed
+              const lastChar = cText[cTextLength - 1];
+              if (!(lastChar === ' ' || lastChar === '\n')) {
+                str += '\n';
+                quads.push(...quads.slice(-8));
+                offsets.push(-2);
+              }
+
+              // struct
+              const lineCount = lines.length;
+              struct[0] += lineCount;
+              for (let i = 0; i < lineCount; i++) {
+                const words = lines[i];
+                const startWord = words[0];
+                const endWord = words[words.length - 1];
+                const lineStart = startWord[0];
+                const lineEnd = endWord[endWord.length - 1];
+                struct.push(
+                  words.length,
+                  0,
+                  cQuads[8 * lineStart],
+                  cQuads[8 * lineStart + 1],
+                  cQuads[8 * lineEnd + 4],
+                  cQuads[8 * lineEnd + 5]
+                );
+                for (let j = 0; j < words.length; j++) {
+                  const word = words[j];
+                  const wordLen = word.length;
+                  const wordStart = word[0];
+                  const wordEnd = word[wordLen - 1];
+                  struct.push(
+                    wordLen,
+                    wordStart + origQuadsOffset,
+                    wordLen,
+                    cQuads[8 * wordStart],
+                    cQuads[8 * wordEnd + 2]
+                  );
+                }
+              }
+            } else {
+              str = traverseTextNode(child, struct, offsets, quads, str);
+            }
+          });
+          return str;
+        }
+
+        return getSelectionData(document.getElementsByTagName('body')[0]);
+      });
+
+      res.send(selectionData);
+    } catch (err) {
+      console.log('/pdftron-text-data', err);
+      res.status(400).end();
+      // } finally {
+      // to maintain one browser open, to be monitored
+      // await browser.close();
     }
   });
 
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req, res) => {
-    const browser = await puppeteer.launch({
-      defaultViewport,
-      headless: true,
-    });
-    const page = await browser.newPage();
     // check again here to avoid server being blown up, tested with saving github
     try {
       await page.goto(`${PATH}`, {
-        waitUntil: 'networkidle0'
+        waitUntil: 'domcontentloaded'
       });
       const buffer = await page.screenshot({ type: 'png', fullPage: true });
       res.send(buffer);
@@ -113,28 +270,29 @@ function createServer(SERVER_ROOT, PORT) {
       console.log(err);
       res.status(400).end();
     }
-    await browser.close();
+    // await browser.close();
   });
 
   // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', function (clientRequest, clientResponse) {
     if (isValidURL(url) && !!urlExists) {
+      let validUrl = urlExists.url();
       const {
         parsedHost,
         parsedPort,
         parsedSSL,
-      } = getHostPortSSL(url);
+      } = getHostPortSSL(validUrl);
 
       // convert to original url, since clientRequest.url starts from /pdftron-proxy and will be redirected
       if (clientRequest.url.startsWith('/pdftron-proxy')) {
-        clientRequest.url = url;
+        clientRequest.url = validUrl;
       }
 
       // if url has nested route then convert to original url to force request it
       // did not work with nested urls from developer.mozilla.org
       // check if nested route cause instagram.com doesn't like this
       if (isUrlNested(url) && clientRequest.url === '/') {
-        clientRequest.url = url;
+        clientRequest.url = validUrl;
       }
 
       var options = {
