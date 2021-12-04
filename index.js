@@ -110,8 +110,11 @@ function createServer(SERVER_ROOT, PORT) {
   app.get('/pdftron-text-data', async (req, res) => {
     try {
       await page.goto(`${PATH}`, {
-        waitUntil: 'domcontentloaded',
+        waitUntil: 'domcontentloaded', // 'networkidle0',
       });
+
+      // see if it makes a difference on production
+      await page.waitForTimeout(3000);
 
       selectionData = await page.evaluate(() => {
         const getSelectionData = (pageBody) => {
