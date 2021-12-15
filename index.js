@@ -64,12 +64,12 @@ function createServer(SERVER_ROOT, PORT) {
       res.status(999).send({ data: 'Please enter a valid URL and try again.' });
     } else {
       console.log('\x1b[31m%s\x1b[0m', `
-      ***********************************************************************
-      ************************** NEW REQUEST ********************************
-      ***********************************************************************
-    `);
+        ***********************************************************************
+        ************************** NEW REQUEST ********************************
+        ***********************************************************************
+      `);
 
-      if (!browser?.isConnected()) {
+      if (!browser || !browser.isConnected()) {
         browser = await puppeteer.launch({
           product: 'chrome',
           defaultViewport,
