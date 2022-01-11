@@ -327,7 +327,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           serverResponse.on('end', function () {
             // can also send dimensions in clientResponse.setHeader() but for some reason, on client can't read response.headers.get() but it's available in the network tab
             clientResponse.setHeader('dimensions', JSON.stringify(dimensions));
-            clientResponse.header('Access-Control-Expose-Headers', 'dimensions');
+            clientResponse.setHeader('Access-Control-Expose-Headers', 'dimensions');
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
           });
