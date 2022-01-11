@@ -14,5 +14,16 @@ Call the `createServer` function in your server component and pass in a `SERVER_
 ## Example
 ```
 const HTMLProxyServer = require('@pdftron/webviewer-html-proxy-server');
-HTMLProxyServer.createServer(`0.0.0.0`, 3100, corsOptions);
+HTMLProxyServer.createServer(`0.0.0.0`, 3100);
+```
+
+Setting CORS example:
+
+```
+HTMLProxyServer.createServer(`0.0.0.0`, 3100, {
+    "origin": "*",
+    "methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+    "preflightContinue": false,
+    "optionsSuccessStatus": 204
+});
 ```
