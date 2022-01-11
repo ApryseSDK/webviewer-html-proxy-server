@@ -9,10 +9,10 @@ npm install @pdftron/webviewer-html-proxy-server
 
 ## How to use
 
-Call the package in your server component and pass in a `SERVER_ROOT` and `PORT`
+Call the `createServer` function in your server component and pass in a `SERVER_ROOT` and `PORT`. You can, optionally, pass in the third parameter, an object to configure CORS. See: https://expressjs.com/en/resources/middleware/cors.html
 
 ## Example
 ```
 const HTMLProxyServer = require('@pdftron/webviewer-html-proxy-server');
-HTMLProxyServer.createServer(`0.0.0.0`, 3100);
+HTMLProxyServer.createServer(`0.0.0.0`, 3100, corsOptions);
 ```

@@ -3,8 +3,15 @@
   "version": "1.0.5",
   "description": "This is a proxy server to use with @pdftron/webviewer-html",
   "main": "index.js",
-  "author": "Andrey Safonov",
+  "author": "PDFTron Systems Inc.",
   "license": "ISC",
+  "scripts": {
+    "release-patch": "npm version patch && npm publish --access public",
+    "release-minor": "npm version minor && npm publish --access public",
+    "release-major": "npm version major && npm publish --access public",
+    "prepublishOnly": "npm run build && npm run build-doc",
+    "postpublish": "git push"
+  },  
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.17.1",

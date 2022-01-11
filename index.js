@@ -4,11 +4,11 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 
-function createServer(SERVER_ROOT, PORT) {
+function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   console.log('createServer', SERVER_ROOT, PORT);
 
   const app = express();
-  app.use(cors());
+  app.use(cors(CORS_OPTIONS));
 
   const PATH = `${SERVER_ROOT}:${PORT}`;
 
@@ -307,7 +307,6 @@ function createServer(SERVER_ROOT, PORT) {
           'User-Agent': clientRequest.headers['user-agent']
         }
       };
-      console.log('hostname', options.hostname, 'path', options.path);
 
       const callback = (serverResponse, clientResponse) => {
         // Delete 'x-frame-options': 'SAMEORIGIN'
@@ -343,7 +342,6 @@ function createServer(SERVER_ROOT, PORT) {
       }
 
       var serverRequest = parsedSSL.request(options, serverResponse => {
-        console.log('serverResponse', serverResponse.statusCode, serverResponse.headers)
         // This is the case of urls being redirected -> retrieve new headers['location'] and request again
         if (serverResponse.statusCode > 299 && serverResponse.statusCode < 400) {
           var location = serverResponse.headers['location'];
@@ -364,10 +362,8 @@ function createServer(SERVER_ROOT, PORT) {
               'User-Agent': clientRequest.headers['user-agent']
             }
           };
-          console.log('newhostname', newOptions.hostname, 'newpath', newOptions.path);
 
           var newServerRequest = newParsedSSL.request(newOptions, newResponse => {
-            console.log('new serverResponse', newResponse.statusCode, newResponse.headers)
             callback(newResponse, clientResponse);
           });
           serverRequest.end();
