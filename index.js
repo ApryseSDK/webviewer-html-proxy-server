@@ -113,9 +113,6 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
         waitUntil: 'domcontentloaded', // 'networkidle0',
       });
 
-      // see if it makes a difference on production
-      await page.waitForTimeout(3000);
-
       selectionData = await page.evaluate(() => {
         const getSelectionData = (pageBody) => {
           const struct = [0];
