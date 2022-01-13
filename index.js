@@ -45,13 +45,13 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   }
 
   const defaultViewport = { width: 1680, height: 1050 };
-  var url;
-  var dimensions;
-  var urlExists;
-  var selectionData;
+  let url;
+  let dimensions;
+  let urlExists;
+  let selectionData;
 
-  var browser;
-  var page;
+  let browser;
+  let page;
 
   app.get('/pdftron-proxy', async function (req, res, next) {
     // this is the url retrieved from the input
@@ -298,7 +298,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
         clientRequest.url = validUrl;
       }
 
-      var options = {
+      const options = {
         hostname: parsedHost,
         port: parsedPort,
         path: clientRequest.url,
@@ -318,7 +318,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
         if (!!serverResponse.headers['cache-control'] && /max-age=[^0]/.test(String(serverResponse.headers['cache-control']))) {
           serverResponse.headers['cache-control'] = 'max-age=0';
         }
-        var body = '';
+        let body = '';
         if (String(serverResponse.headers['content-type']).indexOf('text/html') !== -1) {
           serverResponse.on('data', function (chunk) {
             body += chunk;
@@ -343,11 +343,11 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
         }
       }
 
-      var serverRequest = parsedSSL.request(options, serverResponse => {
+      const serverRequest = parsedSSL.request(options, serverResponse => {
         // This is the case of urls being redirected -> retrieve new headers['location'] and request again
         if (serverResponse.statusCode > 299 && serverResponse.statusCode < 400) {
-          var location = serverResponse.headers['location'];
-          var parsedLocation = isUrlAbsolute(location) ? location : `https://${parsedHost}${location}`;
+          const location = serverResponse.headers['location'];
+          const parsedLocation = isUrlAbsolute(location) ? location : `https://${parsedHost}${location}`;
 
           const {
             parsedHost: newParsedHost,
@@ -355,7 +355,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
             parsedSSL: newParsedSSL,
           } = getHostPortSSL(parsedLocation);
 
-          var newOptions = {
+          const newOptions = {
             hostname: newParsedHost,
             port: newParsedPort,
             path: parsedLocation,
@@ -365,7 +365,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
             }
           };
 
-          var newServerRequest = newParsedSSL.request(newOptions, newResponse => {
+          const newServerRequest = newParsedSSL.request(newOptions, newResponse => {
             callback(newResponse, clientResponse);
           });
           serverRequest.end();
@@ -379,7 +379,6 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
       serverRequest.end();
     }
   });
-
 
   app.listen(PORT);
   console.log(`Running on ${PATH}`);
