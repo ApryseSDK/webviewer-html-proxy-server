@@ -189,7 +189,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           });
         } else {
           // Pipe the server response from the proxied url to the browser so that new requests can be spawned for
-          // non-html content
+          // non-html content (js/css/json etc.)
           serverResponse.pipe(clientResponse, {
             end: true,
           });
