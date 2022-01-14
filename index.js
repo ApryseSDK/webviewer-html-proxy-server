@@ -4,6 +4,7 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 const getTextData = require('./utils/getTextData');
+const e = require('express');
 
 function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   console.log('createServer', SERVER_ROOT, PORT);
@@ -47,8 +48,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
 
   const defaultViewport = { width: 1680, height: 1050 };
   let url;
-  let dimensions;
-  let urlExists;
+  let pageHTTPResponse;
   let selectionData;
 
   let browser;
@@ -57,12 +57,11 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   app.get('/pdftron-proxy', async function (req, res, next) {
     // this is the url retrieved from the input
     url = req.query.url;
-    // reset urlExists
-    urlExists = undefined;
+    // reset pageHTTPResponse
+    pageHTTPResponse = undefined;
     // ****** first check for human readable URL with simple regex
     if (!isValidURL(url)) {
-      // send a custom code here so client can catch this 
-      res.status(999).send({ data: 'Please enter a valid URL and try again.' });
+      res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
       console.log('\x1b[31m%s\x1b[0m', `
         ***********************************************************************
@@ -77,33 +76,31 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           headless: true,
           ignoreHTTPSErrors: true,
         });
-
         page = await browser.newPage();
-        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+        
       }
 
       // ****** second check for puppeteer being able to goto url
       try {
-        urlExists = await page.goto(url, {
+        pageHTTPResponse = await page.goto(url, {
           // use 'domcontentloaded' https://github.com/puppeteer/puppeteer/issues/1666
           waitUntil: 'domcontentloaded',
         });
         // Get the "viewport" of the page, as reported by the page.
-        dimensions = await page.evaluate(() => {
+        const pageDimensions = await page.evaluate(() => {
           return {
             width: document.body.scrollWidth || document.body.clientWidth,
             height: document.body.scrollHeight || document.body.clientHeight,
           };
         });
+        
         // next("router") pass control to next route and strip all req.query, if queried url contains nested route this will be lost in subsequest requests
-        console.log('urlExists', urlExists.url())
-        next();
+        console.log('pageHTTPResponse', url, pageHTTPResponse.url());
+        res.status(200).send({ pageDimensions });
       } catch (err) {
         console.log('/pdftron-proxy', err);
-        res.status(999).send({ data: 'Please enter a valid URL and try again.' });
+        res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
       }
-
-      // await browser.close();
     }
   });
 
@@ -118,9 +115,6 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
     } catch (err) {
       console.log('/pdftron-text-data', err);
       res.status(400).end();
-      // } finally {
-      // to maintain one browser open, to be monitored
-      // await browser.close();
     }
   });
 
@@ -137,28 +131,25 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
       console.log(err);
       res.status(400).end();
     }
-    // await browser.close();
   });
 
   // TAKEN FROM: https://stackoverflow.com/a/63602976
-  app.use('/', function (clientRequest, clientResponse) {
-    if (isValidURL(url) && !!urlExists) {
-      let validUrl = urlExists.url();
+  app.get('/', async function (clientRequest, clientResponse) {
+    if (isValidURL(url) && pageHTTPResponse) {
+      const validUrl = pageHTTPResponse.url();
       const {
         parsedHost,
         parsedPort,
         parsedSSL,
       } = getHostPortSSL(validUrl);
 
-      // convert to original url, since clientRequest.url starts from /pdftron-proxy and will be redirected
-      if (clientRequest.url.startsWith('/pdftron-proxy')) {
-        clientRequest.url = validUrl;
-      }
-
       // if url has nested route then convert to original url to force request it
       // did not work with nested urls from developer.mozilla.org
       // check if nested route cause instagram.com doesn't like this
+
+      // TODO: Do we need this?
       if (isUrlNested(url) && clientRequest.url === '/') {
+        console.log('does this happen 2');
         clientRequest.url = validUrl;
       }
 
@@ -168,7 +159,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
         path: clientRequest.url,
         method: clientRequest.method,
         headers: {
-          'User-Agent': clientRequest.headers['user-agent']
+          'User-Agent': clientRequest.headers['user-agent'],
         }
       };
 
@@ -189,14 +180,10 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           });
 
           serverResponse.on('end', function () {
-            // can also send dimensions in clientResponse.setHeader() but for some reason, on client can't read response.headers.get() but it's available in the network tab
-            clientResponse.setHeader('dimensions', JSON.stringify(dimensions));
-            clientResponse.setHeader('Access-Control-Expose-Headers', 'dimensions');
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
           });
-        }
-        else {
+        } else {
           serverResponse.pipe(clientResponse, {
             end: true
           });
@@ -209,7 +196,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
 
       const serverRequest = parsedSSL.request(options, serverResponse => {
         // This is the case of urls being redirected -> retrieve new headers['location'] and request again
-        if (serverResponse.statusCode > 299 && serverResponse.statusCode < 400) {
+        if (serverResponse.statusCode >= 300 && serverResponse.statusCode <= 399) {
           const location = serverResponse.headers['location'];
           const parsedLocation = isUrlAbsolute(location) ? location : `https://${parsedHost}${location}`;
 
@@ -234,10 +221,9 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           });
           serverRequest.end();
           newServerRequest.end();
-          return;
+        } else {
+          callback(serverResponse, clientResponse);
         }
-
-        callback(serverResponse, clientResponse);
       });
 
       serverRequest.end();
