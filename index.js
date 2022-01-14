@@ -47,6 +47,9 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   }
 
   const defaultViewport = { width: 1680, height: 1050 };
+
+  const urls = {};
+
   let url;
   let pageHTTPResponse;
   let selectionData;
@@ -135,8 +138,6 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
 
   // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', async function (clientRequest, clientResponse) {
-    console.log('clientsdfdsfdsf', clientRequest.headers);
-    console.log('clientResponse', clientResponse.headers);
     if (isValidURL(url) && pageHTTPResponse) {
       const validUrl = pageHTTPResponse.url();
       const {
