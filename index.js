@@ -134,7 +134,9 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   });
 
   // TAKEN FROM: https://stackoverflow.com/a/63602976
-  app.get('/', async function (clientRequest, clientResponse) {
+  app.use('/', async function (clientRequest, clientResponse) {
+    console.log('clientsdfdsfdsf', clientRequest.headers);
+    console.log('clientResponse', clientResponse.headers);
     if (isValidURL(url) && pageHTTPResponse) {
       const validUrl = pageHTTPResponse.url();
       const {
@@ -212,7 +214,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
             path: parsedLocation,
             method: clientRequest.method,
             headers: {
-              'User-Agent': clientRequest.headers['user-agent']
+              'User-Agent': clientRequest.headers['user-agent'],
             }
           };
 
