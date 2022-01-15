@@ -4,7 +4,7 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 const getTextData = require('./utils/getTextData');
-const e = require('express');
+// const session = require('express-session')
 
 function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   console.log('createServer', SERVER_ROOT, PORT);
@@ -56,6 +56,8 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
 
   let browser;
   let page;
+
+  // app.use(session({ secret: 'keyboard cat', cookie: { maxAge: 60000 }}));
 
   app.get('/pdftron-proxy', async function (req, res, next) {
     // this is the url retrieved from the input
@@ -138,6 +140,12 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
 
   // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', async function (clientRequest, clientResponse) {
+    // clientResponse.set
+    // console.log('session', clientRequest.sessionID)
+    // console.log('clientRequest', clientRequest);
+    // console.count();
+    console.log('sdkfjwelkrj');
+
     if (isValidURL(url) && pageHTTPResponse) {
       const validUrl = pageHTTPResponse.url();
       const {
@@ -166,7 +174,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
         }
       };
 
-      const callback = (serverResponse, clientResponse) => {
+      const callback = (serverResponse) => {
         // Delete 'x-frame-options': 'SAMEORIGIN'
         // so that the page can be loaded in an iframe
         delete serverResponse.headers['x-frame-options'];
@@ -185,14 +193,34 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
 
           serverResponse.on('end', function () {
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
+
+            // // var scriptTag = '<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.min.js"></script>';
+            // var scriptTag = '<script type="text/javascript">console.log("hello world");</script>';
+            // // var baseTag = '';
+            // // var baseTag = '<base href="' + (dest.replace(/\/$/, '') || '') + '"/>';
+            // var baseTag = '<base href="https://www.pdftron.com/"/>';
+      
+            // // console.log('str', str);
+            // body = body.replace(/(<head[^>]*>)/, "$1" + "\n" + scriptTag + "\n" + baseTag);
             clientResponse.end(body);
+            // console.log(body);
           });
         } else {
           // Pipe the server response from the proxied url to the browser so that new requests can be spawned for
           // non-html content (js/css/json etc.)
-          serverResponse.pipe(clientResponse, {
-            end: true,
-          });
+          // console.log('serverResponse', serverResponse.connection._host);
+          // console.log('serverResponse', serverResponse.socket, clientResponse.set);
+          // console.log('serverResponse', clientResponse.set);
+          // console.log('serverResponse', typeof serverResponse);
+          // console.log('serverResponse.connection._host', serverResponse.connection._host);
+          // clientResponse.set({ 'host': serverResponse.connection._host });
+          // console.log('clientResponse', clientResponse.get('host'));
+          // clientResponse.set('host', serverResponse.connection._host);
+          console.log(serverResponse.path);
+          console.log('wtf');
+          serverResponse.pipe(clientResponse);
+          // console.log('clientResponse', clientResponse.get('host'));
+          // console.log('clientResponse', clientResponse.get('host'));
           // Can be undefined
           if (serverResponse.headers['content-type']) {
             clientResponse.contentType(serverResponse.headers['content-type'])
@@ -223,12 +251,12 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           };
 
           const newServerRequest = newParsedSSL.request(newOptions, newResponse => {
-            callback(newResponse, clientResponse);
+            callback(newResponse);
           });
           serverRequest.end();
           newServerRequest.end();
         } else {
-          callback(serverResponse, clientResponse);
+          callback(serverResponse);
         }
       });
 
