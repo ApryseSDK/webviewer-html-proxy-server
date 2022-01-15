@@ -4,7 +4,6 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 const getTextData = require('./utils/getTextData');
-// const session = require('express-session')
 
 function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   console.log('createServer', SERVER_ROOT, PORT);
@@ -142,9 +141,9 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   app.use('/', async function (clientRequest, clientResponse) {
     // clientResponse.set
     // console.log('session', clientRequest.sessionID)
-    // console.log('clientRequest', clientRequest);
+    console.log('clientRequest', clientRequest.path);
     // console.count();
-    console.log('sdkfjwelkrj');
+    // console.log('sdkfjwelkrj');
 
     if (isValidURL(url) && pageHTTPResponse) {
       const validUrl = pageHTTPResponse.url();
@@ -159,10 +158,10 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
       // check if nested route cause instagram.com doesn't like this
 
       // TODO: Do we need this?
-      if (isUrlNested(url) && clientRequest.url === '/') {
-        console.log('does this happen 2');
-        clientRequest.url = validUrl;
-      }
+      // if (isUrlNested(url) && clientRequest.url === '/') {
+      //   console.log('does this happen 2');
+      //   clientRequest.url = validUrl;
+      // }
 
       const options = {
         hostname: parsedHost,
@@ -195,19 +194,21 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
 
             // // var scriptTag = '<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.min.js"></script>';
-            // var scriptTag = '<script type="text/javascript">console.log("hello world");</script>';
-            // // var baseTag = '';
+            var scriptTag = '<script type="text/javascript">console.log("hello world");</script>';
+            var baseTag = '';
             // // var baseTag = '<base href="' + (dest.replace(/\/$/, '') || '') + '"/>';
             // var baseTag = '<base href="https://www.pdftron.com/"/>';
       
             // // console.log('str', str);
-            // body = body.replace(/(<head[^>]*>)/, "$1" + "\n" + scriptTag + "\n" + baseTag);
+            body = body.replace(/(<head[^>]*>)/, "$1" + "\n" + scriptTag + "\n" + baseTag);
             clientResponse.end(body);
             // console.log(body);
+
+            console.log('end body');
           });
         } else {
-          // Pipe the server response from the proxied url to the browser so that new requests can be spawned for
-          // non-html content (js/css/json etc.)
+          // Pipe the server response from the proxied url, for the non-html content (js/css/json/image etc) back to the browser
+          // 
           // console.log('serverResponse', serverResponse.connection._host);
           // console.log('serverResponse', serverResponse.socket, clientResponse.set);
           // console.log('serverResponse', clientResponse.set);
@@ -216,14 +217,13 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           // clientResponse.set({ 'host': serverResponse.connection._host });
           // console.log('clientResponse', clientResponse.get('host'));
           // clientResponse.set('host', serverResponse.connection._host);
-          console.log(serverResponse.path);
-          console.log('wtf');
+          console.log(serverResponse.req.path, serverResponse.headers['content-type']);
           serverResponse.pipe(clientResponse);
           // console.log('clientResponse', clientResponse.get('host'));
           // console.log('clientResponse', clientResponse.get('host'));
           // Can be undefined
           if (serverResponse.headers['content-type']) {
-            clientResponse.contentType(serverResponse.headers['content-type'])
+            clientResponse.contentType(serverResponse.headers['content-type']);
           }
         }
       }
