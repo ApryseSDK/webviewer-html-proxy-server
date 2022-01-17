@@ -183,6 +183,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           serverResponse.headers['cache-control'] = 'max-age=0';
         }
         let body = '';
+        // Send html content from the proxied url to the browser so that it can spawn new requests.
         if (String(serverResponse.headers['content-type']).indexOf('text/html') !== -1) {
           serverResponse.on('data', function (chunk) {
             body += chunk;
@@ -197,6 +198,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           });
         }
         else {
+          // Pipe the server response from the proxied url, for the non-html content (js/css/json/image etc) back to the browser
           serverResponse.pipe(clientResponse, {
             end: true
           });
