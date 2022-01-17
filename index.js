@@ -4,6 +4,7 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 const getTextData = require('./utils/getTextData');
+const URL = require('url').URL
 
 function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   console.log('createServer', SERVER_ROOT, PORT);
@@ -139,14 +140,12 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
 
   // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', async function (clientRequest, clientResponse) {
-    // clientResponse.set
-    // console.log('session', clientRequest.sessionID)
-    console.log('clientRequest', clientRequest.path);
-    // console.count();
-    // console.log('sdkfjwelkrj');
-
     if (isValidURL(url) && pageHTTPResponse) {
       const validUrl = pageHTTPResponse.url();
+      // console.log('urlllls', validUrl, url, clientRequest.path, clientRequest.url);
+      const url1 = new URL(validUrl);
+      const { hostname } = url1;
+      // console.log(url1.hostname, clientRequest.url, validUrl);
       const {
         parsedHost,
         parsedPort,
@@ -163,9 +162,12 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
       //   clientRequest.url = validUrl;
       // }
 
+      // console.log('parsedHost', parsedHost);
       const options = {
-        hostname: parsedHost,
+        hostname: hostname,
         port: parsedPort,
+        // path: validUrl + clientRequest.url,
+        // path: '/documentation/web/guides/ui-customization/',
         path: clientRequest.url,
         method: clientRequest.method,
         headers: {
@@ -173,6 +175,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
         }
       };
 
+      console.log(options);
       const callback = (serverResponse) => {
         // Delete 'x-frame-options': 'SAMEORIGIN'
         // so that the page can be loaded in an iframe
@@ -208,16 +211,6 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           });
         } else {
           // Pipe the server response from the proxied url, for the non-html content (js/css/json/image etc) back to the browser
-          // 
-          // console.log('serverResponse', serverResponse.connection._host);
-          // console.log('serverResponse', serverResponse.socket, clientResponse.set);
-          // console.log('serverResponse', clientResponse.set);
-          // console.log('serverResponse', typeof serverResponse);
-          // console.log('serverResponse.connection._host', serverResponse.connection._host);
-          // clientResponse.set({ 'host': serverResponse.connection._host });
-          // console.log('clientResponse', clientResponse.get('host'));
-          // clientResponse.set('host', serverResponse.connection._host);
-          console.log(serverResponse.req.path, serverResponse.headers['content-type']);
           serverResponse.pipe(clientResponse);
           // console.log('clientResponse', clientResponse.get('host'));
           // console.log('clientResponse', clientResponse.get('host'));
