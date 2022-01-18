@@ -3,13 +3,15 @@ const cors = require('cors');
 const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
+const cookieParser = require('cookie-parser');
 const getTextData = require('./utils/getTextData');
 
 function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   console.log('createServer', SERVER_ROOT, PORT);
 
   const app = express();
-  app.use(cors(CORS_OPTIONS));
+  app.use(cookieParser());
+  app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 
   const PATH = `${SERVER_ROOT}:${PORT}`;
 
@@ -46,15 +48,20 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   }
 
   const defaultViewport = { width: 1680, height: 1050 };
+  const puppeteerOptions = {
+    product: 'chrome',
+    defaultViewport,
+    headless: true,
+    ignoreHTTPSErrors: true,
+  };
   let url;
   let dimensions;
   let urlExists;
-  let selectionData;
-
-  let browser;
-  let page;
 
   app.get('/pdftron-proxy', async function (req, res, next) {
+    // res.cookie('dimensions4', JSON.stringify({ width: 4000 }));
+    // res.sendStatus(200);
+
     // this is the url retrieved from the input
     url = req.query.url;
     // reset urlExists
@@ -62,7 +69,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
     // ****** first check for human readable URL with simple regex
     if (!isValidURL(url)) {
       // send a custom code here so client can catch this 
-      res.status(999).send({ data: 'Please enter a valid URL and try again.' });
+      res.status(400).send({ data: 'Please enter a valid URL and try again.' });
     } else {
       console.log('\x1b[31m%s\x1b[0m', `
         ***********************************************************************
@@ -70,20 +77,12 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
         ***********************************************************************
       `);
 
-      if (!browser || !browser.isConnected()) {
-        browser = await puppeteer.launch({
-          product: 'chrome',
-          defaultViewport,
-          headless: true,
-          ignoreHTTPSErrors: true,
-        });
-
-        page = await browser.newPage();
-        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-      }
 
       // ****** second check for puppeteer being able to goto url
       try {
+        const browser = await puppeteer.launch(puppeteerOptions);
+        const page = await browser.newPage();
+        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
         urlExists = await page.goto(url, {
           // use 'domcontentloaded' https://github.com/puppeteer/puppeteer/issues/1666
           waitUntil: 'domcontentloaded',
@@ -95,12 +94,14 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
             height: document.body.scrollHeight || document.body.clientHeight,
           };
         });
+        res.cookie('dimensions', JSON.stringify(dimensions));
         // next("router") pass control to next route and strip all req.query, if queried url contains nested route this will be lost in subsequest requests
         console.log('urlExists', urlExists.url())
         next();
+        await browser.close();
       } catch (err) {
         console.log('/pdftron-proxy', err);
-        res.status(999).send({ data: 'Please enter a valid URL and try again.' });
+        res.status(400).send({ data: 'Please enter a valid URL and try again.' });
       }
 
       // await browser.close();
@@ -110,11 +111,14 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   // need to be placed before app.use('/');
   app.get('/pdftron-text-data', async (req, res) => {
     try {
+      const browser = await puppeteer.launch(puppeteerOptions);
+      const page = await browser.newPage();
       await page.goto(`${PATH}`, {
         waitUntil: 'domcontentloaded', // 'networkidle0',
       });
-      selectionData = await getTextData(page);
+      const selectionData = await getTextData(page);
       res.send(selectionData);
+      await browser.close();
     } catch (err) {
       console.log('/pdftron-text-data', err);
       res.status(400).end();
@@ -126,13 +130,18 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
 
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req, res) => {
+    // console.log('clientRequest', JSON.stringify(req.cookies))
     // check again here to avoid server being blown up, tested with saving github
     try {
+      const browser = await puppeteer.launch(puppeteerOptions);
+      const page = await browser.newPage();
       await page.goto(`${PATH}`, {
         waitUntil: 'domcontentloaded'
       });
       const buffer = await page.screenshot({ type: 'png', fullPage: true });
+      res.setHeader('Cache-Control', ['no-cache', 'no-store', 'must-revalidate']);
       res.send(buffer);
+      await browser.close();
     } catch (err) {
       console.log(err);
       res.status(400).end();
@@ -142,6 +151,8 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
 
   // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', function (clientRequest, clientResponse) {
+    console.log('clientRequest in app.use(/)', JSON.stringify(clientRequest.cookies.dimensions))
+    // console.log(clientRequest.headers)
     if (isValidURL(url) && !!urlExists) {
       let validUrl = urlExists.url();
       const {
@@ -168,7 +179,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
         path: clientRequest.url,
         method: clientRequest.method,
         headers: {
-          'User-Agent': clientRequest.headers['user-agent']
+          'User-Agent': clientRequest.headers['user-agent'],
         }
       };
 
