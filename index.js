@@ -5,27 +5,29 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 const getTextData = require('./utils/getTextData');
+const cookieParser = require('cookie-parser');
 
 function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true }) {
   console.log('createServer', SERVER_ROOT, PORT);
 
   const app = express();
+  app.use(cookieParser());
   app.use(cors(CORS_OPTIONS));
 
   const oneDay = 1000 * 60 * 60 * 24;
-  app.use(session({
-    secret: "thisismysecret",
-    saveUninitialized: true,
-    name: 'webviewer_html_sID',
-    // proxy: true,
-    cookie: {
-      httpOnly: true,
-      maxAge: oneDay,
-      sameSite: true,
-      secure: false,
-    },
-    resave: true
-  }));
+  // app.use(session({
+  //   secret: "thisismysecret",
+  //   saveUninitialized: true,
+  //   name: 'webviewer_html_sID',
+  //   // proxy: true,
+  //   cookie: {
+  //     httpOnly: true,
+  //     maxAge: oneDay,
+  //     sameSite: true,
+  //     secure: false,
+  //   },
+  //   resave: true
+  // }));
 
   const PATH = `${SERVER_ROOT}:${PORT}`;
 
@@ -69,7 +71,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
     ignoreHTTPSErrors: true,
   };
 
-  app.get('/pdftron-proxy', async function (req, res, next) {
+  app.get('/pdftron-set-proxy-url', async function (req, res, next) {
     // this is the url retrieved from the input
     let url = req.query.url;
     // ****** first check for human readable URL with simple regex
@@ -93,11 +95,11 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
           waitUntil: 'domcontentloaded',
         });
 
-        await page.goto(pageHTTPResponse.url(), {
-          waitUntil: 'domcontentloaded', // 'networkidle0',
-        });
+        // await page.goto(pageHTTPResponse.url(), {
+        //   waitUntil: 'domcontentloaded', // 'networkidle0',
+        // });
 
-        const selectionData = await getTextData(page);
+        // const selectionData = await getTextData(page);
 
         // await page.goto(urlExists().url)
         // Get the "viewport" of the page, as reported by the page.
@@ -107,44 +109,65 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
             height: document.body.scrollHeight || document.body.clientHeight,
           };
         });
+        browser.close();
 
         console.log('dimensions', pageDimensions)
-        req.session.pageDimensions = JSON.stringify(pageDimensions);
-        req.session.validUrl = pageHTTPResponse.url();
-        req.session.selectionData = JSON.stringify(selectionData);
-        // req.session.save(() => console.log(req.session));
-        console.log('req.sessionID /proxy', req.sessionID)
+        console.log('pageHTTPResponse.url()', pageHTTPResponse.url());
+        // res.clearCookie('validUrl');
+        res.cookie('validUrl', pageHTTPResponse.url());
+        // res.cookie('pageDimensions', JSON.stringify(pageDimensions));
+        // res.send({ pageDimensions });
+        res.end();
+        // req.session.pageDimensions = JSON.stringify(pageDimensions);
+        // req.session.validUrl = pageHTTPResponse.url();
+        // req.session.selectionData = JSON.stringify(selectionData);
+        // // req.session.save(() => console.log(req.session));
+        // console.log('req.sessionID /proxy', req.sessionID)
         // next("router") pass control to next route and strip all req.query, if queried url contains nested route this will be lost in subsequest requests
-        next();
+        // next();
         // res.status(200).send(selectionData);
-        await browser.close();
+
       } catch (err) {
-        console.log('/pdftron-proxy', err);
+        console.log('/pdftron-set-proxy-url', err);
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
       }
     }
   });
 
   // need to be placed before app.use('/');
-  // app.get('/pdftron-text-data', async (req, res) => {
-  //   console.log('clientRequest session in /pdftron-text-data', req.session)
-  //   try {
-  //     const browser = await puppeteer.launch(puppeteerOptions);
-  //     const page = await browser.newPage();
-  //     await page.goto(`${PATH}`, {
-  //       waitUntil: 'domcontentloaded', // 'networkidle0',
-  //     });
-  //     const selectionData = await getTextData(page);
-  //     res.send(selectionData);
-  //     await browser.close();
-  //   } catch (err) {
-  //     console.log('/pdftron-text-data', err);
-  //     res.status(400).end();
-  //     // } finally {
-  //     // to maintain one browser open, to be monitored
-  //     // await browser.close();
-  //   }
-  // });
+  app.get('/pdftron-text-data', async (req, res, next) => {
+    // console.log('pdftron-text-data cookie', req.cookies.validUrl);
+    // const browser = await puppeteer.launch(puppeteerOptions);
+    // const page = await browser.newPage();
+    // await page.goto(`${PATH}?url=${req.cookies.validUrl}`, {
+    //   waitUntil: 'domcontentloaded', // 'networkidle0',
+    // });
+    // res.send({});
+    // await page.setCookie({
+    //   'name': 'validUrl',
+    //   'value': 'hahahaha',
+    // });
+    // console.log('pdftron-text-data cookie', req.cookies.validUrl);
+    // res.cookie('validUrl', pageHTTPResponse.url());
+    // next();
+    // console.log('clientRequest session in /pdftron-text-data', req.session)
+    try {
+      const browser = await puppeteer.launch(puppeteerOptions);
+      const page = await browser.newPage();
+      await page.goto(`${PATH}?url=${req.cookies.validUrl}`, {
+        waitUntil: 'domcontentloaded', // 'networkidle0',
+      });
+      const selectionData = await getTextData(page);
+      res.send(selectionData);
+      await browser.close();
+    } catch (err) {
+      console.log('/pdftron-text-data', err);
+      res.status(400).end();
+      // } finally {
+      // to maintain one browser open, to be monitored
+      // await browser.close();
+    }
+  });
 
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req, res) => {
@@ -153,13 +176,13 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
     try {
       const browser = await puppeteer.launch(puppeteerOptions);
       const page = await browser.newPage();
-      await page.goto(`${PATH}`, {
+      await page.goto(`${PATH}?url=${req.cookies.validUrl}`, {
         waitUntil: 'domcontentloaded'
       });
       const buffer = await page.screenshot({ type: 'png', fullPage: true });
+      browser.close();
       res.setHeader('Cache-Control', ['no-cache', 'no-store', 'must-revalidate']);
-      res.send(buffer);
-      await browser.close();
+      res.send(buffer); 
     } catch (err) {
       console.log(err);
       res.status(400).end();
@@ -167,14 +190,18 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
     // await browser.close();
   });
 
-  // TAKEN FROM: https://stackoverflow.com/a/63602976
+  // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', function (clientRequest, clientResponse) {
-    console.log('clientRequest session in app.use(/)', clientRequest.url)
+    const queryurl = clientRequest.query.url;
+    console.log('queryurl', queryurl);
+    console.log('-0--0-0-0-0-', clientRequest.cookies.validUrl);
+    console.log('clientRequest cookie in app.use(/)', clientRequest.cookies.validUrl)
+    // console.log('clientRequest session in app.use(/)', clientRequest.url, clientRequest.session.validUrl)
     // console.log('clientRequest session in app.use(/)', clientRequest.session.pageDimensions)
     // console.log('clientRequest cookie in app.use(/)', clientRequest.cookies)
-    let validUrl = clientRequest.session.validUrl;
-    let pageDimensions = clientRequest.session.pageDimensions;
-    let selectionData = clientRequest.session.selectionData;
+    let validUrl = clientRequest.query.url || clientRequest.cookies.validUrl;
+    // let pageDimensions = clientRequest.session.pageDimensions;
+    // let selectionData = clientRequest.session.selectionData;
     if (validUrl) {
       const {
         parsedHost,
@@ -222,9 +249,9 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
           });
 
           serverResponse.on('end', function () {
-            clientResponse.setHeader('pageDimensions', pageDimensions);
-            clientResponse.setHeader('Access-Control-Expose-Headers', 'pageDimensions');
-            clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
+            // clientResponse.setHeader('pageDimensions', pageDimensions);
+            // clientResponse.setHeader('Access-Control-Expose-Headers', 'pageDimensions');
+            // clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
           });
         } else {
