@@ -7,7 +7,7 @@ const puppeteer = require('puppeteer');
 const getTextData = require('./utils/getTextData');
 const cookieParser = require('cookie-parser');
 
-function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true }) {
+function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `http://localhost:3000`, credentials: true }) {
   console.log('createServer', SERVER_ROOT, PORT);
 
   const app = express();
