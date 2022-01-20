@@ -138,6 +138,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
       await page.goto(`${req.query.url}`, {
         waitUntil: 'domcontentloaded'
       });
+      await page.waitForTimeout(2000);
       const buffer = await page.screenshot({ type: 'png', fullPage: true });
       res.setHeader('Cache-Control', ['no-cache', 'no-store', 'must-revalidate']);
       res.send(buffer);
