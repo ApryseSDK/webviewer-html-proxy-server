@@ -87,8 +87,8 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
         // Get the "viewport" of the page, as reported by the page.
         const pageDimensions = await page.evaluate(() => {
           return {
-            width: document.body.scrollWidth || document.body.clientWidth,
-            height: document.body.scrollHeight || document.body.clientHeight,
+            width: document.body.scrollWidth || document.body.clientWidth || 1680,
+            height: document.body.scrollHeight || document.body.clientHeight || 7000,
           };
         });
 
@@ -106,26 +106,6 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
     }
   });
 
-  // can't make this text API work with page.goto(`localhost:3100`) in SUBSEQUENT REQUESTS
-  // app.get('/pdftron-text-data', async (req, res) => {
-  //   console.log('cookies in /pdftron-text', req.cookies.validURL)
-  //   console.log('query.url in /pdftron-text', req.query.url)
-  //   res.cookie('validURL', req.query.url)
-  //   try {
-  //     const browser = await puppeteer.launch(puppeteerOptions);
-  //     const page = await browser.newPage();
-  //     await page.goto(`${PATH}?url=${req.query.url}`, {
-  //       waitUntil: 'domcontentloaded', // 'networkidle0',
-  //     });
-  //     const selectionData = await getTextData(page);
-  //     res.status(200).send(selectionData);
-  //     await browser.close();
-  //   } catch (err) {
-  //     console.log('/pdftron-text-data', err);
-  //     res.status(400).end();
-  //   }
-  // });
-
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req, res) => {
     // console.log('/pdftron-download', req.cookies.validURL)
@@ -141,6 +121,8 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
       await page.waitForTimeout(2000);
       const buffer = await page.screenshot({ type: 'png', fullPage: true });
       res.setHeader('Cache-Control', ['no-cache', 'no-store', 'must-revalidate']);
+      // buffer is sent as an response then client side consumes this to create a PDF
+      // if send as a buffer can't convert that to PDF on client
       res.send(buffer);
       await browser.close();
     } catch (err) {
@@ -149,10 +131,12 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
     }
   });
 
+  // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest, clientResponse) => {
+    // console.log('clientRequest in app.use(/)', clientRequest.baseUrl, clientRequest.url)
+    // console.log('clientRequest in app.use(/)', clientRequest.cookies.validURL, clientRequest.query.url)
     let validUrl = clientRequest.query.url || clientRequest.cookies.validURL;
-    // console.log('clientRequest in app.use(/)', clientRequest.cookies.validURL, clientRequest.query.url);
     if (validUrl) {
       const {
         parsedHost,
