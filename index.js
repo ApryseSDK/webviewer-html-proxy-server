@@ -5,6 +5,7 @@ const http = require('http');
 const puppeteer = require('puppeteer');
 const cookieParser = require('cookie-parser');
 const getTextData = require('./utils/getTextData');
+const URL = require('url').URL
 
 function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true }) {
   console.log('createServer', SERVER_ROOT, PORT);
@@ -144,17 +145,17 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
         parsedSSL,
       } = getHostPortSSL(validUrl);
 
-      // convert to original url, since clientRequest.url starts from /pdftron-proxy and will be redirected
-      if (clientRequest.url.startsWith('/pdftron-proxy')) {
-        clientRequest.url = validUrl;
-      }
+      const url1 = new URL(validUrl);
+      const { hostname } = url1;
 
       // if url has nested route then convert to original url to force request it
       // did not work with nested urls from developer.mozilla.org
       // check if nested route cause instagram.com doesn't like this
       if (isUrlNested(validUrl) && clientRequest.url === '/') {
         console.log('this is a nested URL');
-        clientRequest.url = validUrl;
+        // Can't use url with https://
+        // https://stackoverflow.com/questions/17690803/node-js-getaddrinfo-enotfound?rq=1
+        clientRequest.url = url1.pathname;
       }
 
       const options = {
@@ -170,6 +171,9 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
       const callback = (serverResponse, clientResponse) => {
         // Delete 'x-frame-options': 'SAMEORIGIN'
         // so that the page can be loaded in an iframe
+        // https://stackoverflow.com/questions/36628420/nodejs-request-hpe-invalid-header-token
+        // https://stackoverflow.com/questions/56554244/hpe-invalid-header-token-while-trying-to-parse-api-response-using-express-js-rou
+        delete serverResponse.headers['set-cookie'];
         delete serverResponse.headers['x-frame-options'];
         delete serverResponse.headers['content-security-policy'];
 
