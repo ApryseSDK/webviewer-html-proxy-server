@@ -3,12 +3,15 @@ const cors = require('cors');
 const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
+const cookieParser = require('cookie-parser');
 const getTextData = require('./utils/getTextData');
+const URL = require('url').URL
 
-function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
+function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true }) {
   console.log('createServer', SERVER_ROOT, PORT);
 
   const app = express();
+  app.use(cookieParser());
   app.use(cors(CORS_OPTIONS));
 
   const PATH = `${SERVER_ROOT}:${PORT}`;
@@ -46,23 +49,19 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
   }
 
   const defaultViewport = { width: 1680, height: 1050 };
-  let url;
-  let dimensions;
-  let urlExists;
-  let selectionData;
+  const puppeteerOptions = {
+    product: 'chrome',
+    defaultViewport,
+    headless: true,
+    ignoreHTTPSErrors: true,
+  };
 
-  let browser;
-  let page;
-
-  app.get('/pdftron-proxy', async function (req, res, next) {
+  app.get('/pdftron-proxy', async (req, res) => {
     // this is the url retrieved from the input
-    url = req.query.url;
-    // reset urlExists
-    urlExists = undefined;
+    let url = req.query.url;
     // ****** first check for human readable URL with simple regex
     if (!isValidURL(url)) {
-      // send a custom code here so client can catch this 
-      res.status(999).send({ data: 'Please enter a valid URL and try again.' });
+      res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
       console.log('\x1b[31m%s\x1b[0m', `
         ***********************************************************************
@@ -70,96 +69,92 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
         ***********************************************************************
       `);
 
-      if (!browser || !browser.isConnected()) {
-        browser = await puppeteer.launch({
-          product: 'chrome',
-          defaultViewport,
-          headless: true,
-          ignoreHTTPSErrors: true,
-        });
-
-        page = await browser.newPage();
-        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-      }
 
       // ****** second check for puppeteer being able to goto url
       try {
-        urlExists = await page.goto(url, {
+        const browser = await puppeteer.launch(puppeteerOptions);
+        const page = await browser.newPage();
+        // page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+        const pageHTTPResponse = await page.goto(url, {
           // use 'domcontentloaded' https://github.com/puppeteer/puppeteer/issues/1666
           waitUntil: 'domcontentloaded',
         });
+        const validUrl = pageHTTPResponse.url();
+
+        await page.goto(`${validUrl}`, {
+          waitUntil: 'domcontentloaded', // 'networkidle0',
+        });
+
         // Get the "viewport" of the page, as reported by the page.
-        dimensions = await page.evaluate(() => {
+        const pageDimensions = await page.evaluate(() => {
           return {
-            width: document.body.scrollWidth || document.body.clientWidth,
-            height: document.body.scrollHeight || document.body.clientHeight,
+            width: document.body.scrollWidth || document.body.clientWidth || 1680,
+            height: document.body.scrollHeight || document.body.clientHeight || 7000,
           };
         });
-        // next("router") pass control to next route and strip all req.query, if queried url contains nested route this will be lost in subsequest requests
-        console.log('urlExists', urlExists.url())
-        next();
+
+        const selectionData = await getTextData(page);
+
+        // cookie will only be set when res is sent succesfully
+        res.cookie('validURL', validUrl);
+        res.status(200).send({ pageDimensions, selectionData, validUrl });
+        await browser.close();
+
       } catch (err) {
         console.log('/pdftron-proxy', err);
-        res.status(999).send({ data: 'Please enter a valid URL and try again.' });
+        res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
       }
-
-      // await browser.close();
-    }
-  });
-
-  // need to be placed before app.use('/');
-  app.get('/pdftron-text-data', async (req, res) => {
-    try {
-      await page.goto(`${PATH}`, {
-        waitUntil: 'domcontentloaded', // 'networkidle0',
-      });
-      selectionData = await getTextData(page);
-      res.send(selectionData);
-    } catch (err) {
-      console.log('/pdftron-text-data', err);
-      res.status(400).end();
-      // } finally {
-      // to maintain one browser open, to be monitored
-      // await browser.close();
     }
   });
 
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req, res) => {
+    // console.log('/pdftron-download', req.cookies.validURL)
+    // console.log('/pdftron-download', req.query.url)
     // check again here to avoid server being blown up, tested with saving github
     try {
-      await page.goto(`${PATH}`, {
+      const browser = await puppeteer.launch(puppeteerOptions);
+      const page = await browser.newPage();
+      // await page.goto(`${PATH}?url=${req.query.url}`, {
+      await page.goto(`${req.query.url}`, {
         waitUntil: 'domcontentloaded'
       });
+      await page.waitForTimeout(2000);
       const buffer = await page.screenshot({ type: 'png', fullPage: true });
+      res.setHeader('Cache-Control', ['no-cache', 'no-store', 'must-revalidate']);
+      // buffer is sent as an response then client side consumes this to create a PDF
+      // if send as a buffer can't convert that to PDF on client
       res.send(buffer);
+      await browser.close();
     } catch (err) {
       console.log(err);
       res.status(400).end();
     }
-    // await browser.close();
   });
 
-  // TAKEN FROM: https://stackoverflow.com/a/63602976
-  app.use('/', function (clientRequest, clientResponse) {
-    if (isValidURL(url) && !!urlExists) {
-      let validUrl = urlExists.url();
+  // TODO: detect when websites cannot be fetched
+  // // TAKEN FROM: https://stackoverflow.com/a/63602976
+  app.use('/', (clientRequest, clientResponse) => {
+    // console.log('clientRequest in app.use(/)', clientRequest.baseUrl, clientRequest.url)
+    // console.log('clientRequest in app.use(/)', clientRequest.cookies.validURL, clientRequest.query.url)
+    const validUrl = clientRequest.cookies.validURL;
+    if (validUrl) {
       const {
         parsedHost,
         parsedPort,
         parsedSSL,
       } = getHostPortSSL(validUrl);
 
-      // convert to original url, since clientRequest.url starts from /pdftron-proxy and will be redirected
-      if (clientRequest.url.startsWith('/pdftron-proxy')) {
-        clientRequest.url = validUrl;
-      }
+      const url1 = new URL(validUrl);
 
       // if url has nested route then convert to original url to force request it
       // did not work with nested urls from developer.mozilla.org
       // check if nested route cause instagram.com doesn't like this
-      if (isUrlNested(url) && clientRequest.url === '/') {
-        clientRequest.url = validUrl;
+      if (isUrlNested(validUrl) && clientRequest.url === '/') {
+        console.log('this is a nested URL');
+        // Can't use url with https://
+        // https://stackoverflow.com/questions/17690803/node-js-getaddrinfo-enotfound?rq=1
+        clientRequest.url = url1.pathname;
       }
 
       const options = {
@@ -167,14 +162,18 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
         port: parsedPort,
         path: clientRequest.url,
         method: clientRequest.method,
+        // insecureHTTPParser: true,
         headers: {
-          'User-Agent': clientRequest.headers['user-agent']
+          'User-Agent': clientRequest.headers['user-agent'],
         }
       };
 
       const callback = (serverResponse, clientResponse) => {
         // Delete 'x-frame-options': 'SAMEORIGIN'
         // so that the page can be loaded in an iframe
+        // https://stackoverflow.com/questions/36628420/nodejs-request-hpe-invalid-header-token
+        // https://stackoverflow.com/questions/56554244/hpe-invalid-header-token-while-trying-to-parse-api-response-using-express-js-rou
+        delete serverResponse.headers['set-cookie'];
         delete serverResponse.headers['x-frame-options'];
         delete serverResponse.headers['content-security-policy'];
 
@@ -190,17 +189,14 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           });
 
           serverResponse.on('end', function () {
-            // can also send dimensions in clientResponse.setHeader() but for some reason, on client can't read response.headers.get() but it's available in the network tab
-            clientResponse.setHeader('dimensions', JSON.stringify(dimensions));
-            clientResponse.setHeader('Access-Control-Expose-Headers', 'dimensions');
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
           });
-        }
-        else {
-          // Pipe the server response from the proxied url, for the non-html content (js/css/json/image etc) back to the browser
+        } else {
+          // Pipe the server response from the proxied url to the browser so that new requests can be spawned for
+          // non-html content (js/css/json etc.)
           serverResponse.pipe(clientResponse, {
-            end: true
+            end: true,
           });
           // Can be undefined
           if (serverResponse.headers['content-type']) {
@@ -211,7 +207,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
 
       const serverRequest = parsedSSL.request(options, serverResponse => {
         // This is the case of urls being redirected -> retrieve new headers['location'] and request again
-        if (serverResponse.statusCode > 299 && serverResponse.statusCode < 400) {
+        if (serverResponse.statusCode >= 300 && serverResponse.statusCode <= 399) {
           const location = serverResponse.headers['location'];
           const parsedLocation = isUrlAbsolute(location) ? location : `https://${parsedHost}${location}`;
 
@@ -226,8 +222,9 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
             port: newParsedPort,
             path: parsedLocation,
             method: clientRequest.method,
+            // insecureHTTPParser: true,
             headers: {
-              'User-Agent': clientRequest.headers['user-agent']
+              'User-Agent': clientRequest.headers['user-agent'],
             }
           };
 
@@ -236,10 +233,9 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = {}) {
           });
           serverRequest.end();
           newServerRequest.end();
-          return;
+        } else {
+          callback(serverResponse, clientResponse);
         }
-
-        callback(serverResponse, clientResponse);
       });
 
       serverRequest.end();
