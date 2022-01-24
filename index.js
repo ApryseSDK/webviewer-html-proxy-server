@@ -137,7 +137,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
   app.use('/', (clientRequest, clientResponse) => {
     // console.log('clientRequest in app.use(/)', clientRequest.baseUrl, clientRequest.url)
     // console.log('clientRequest in app.use(/)', clientRequest.cookies.validURL, clientRequest.query.url)
-    let validUrl = clientRequest.query.url || clientRequest.cookies.validURL;
+    const validUrl = clientRequest.cookies.validURL;
     if (validUrl) {
       const {
         parsedHost,
@@ -146,7 +146,6 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
       } = getHostPortSSL(validUrl);
 
       const url1 = new URL(validUrl);
-      const { hostname } = url1;
 
       // if url has nested route then convert to original url to force request it
       // did not work with nested urls from developer.mozilla.org
@@ -163,6 +162,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
         port: parsedPort,
         path: clientRequest.url,
         method: clientRequest.method,
+        // insecureHTTPParser: true,
         headers: {
           'User-Agent': clientRequest.headers['user-agent'],
         }
@@ -222,6 +222,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
             port: newParsedPort,
             path: parsedLocation,
             method: clientRequest.method,
+            // insecureHTTPParser: true,
             headers: {
               'User-Agent': clientRequest.headers['user-agent'],
             }
