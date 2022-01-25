@@ -22,13 +22,19 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
   }
 
   const getHostPortSSL = (url) => {
-    const parsedHost = url.split('/').splice(2).splice(0, 1).join('/')
+    const {
+      hostname,
+      pathname,
+      protocol
+    } = new URL(url);
+    const parsedHost = hostname;
     let parsedPort;
     let parsedSSL;
-    if (url.startsWith('https://')) {
+    if (protocol == 'https:') {
       parsedPort = 443;
       parsedSSL = https;
-    } else if (url.startsWith('http://')) {
+    }
+    if (protocol == 'http:') {
       parsedPort = 80;
       parsedSSL = http;
     }
@@ -36,6 +42,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
       parsedHost,
       parsedPort,
       parsedSSL,
+      pathname,
     }
   }
 
@@ -143,18 +150,16 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
         parsedHost,
         parsedPort,
         parsedSSL,
+        pathname
       } = getHostPortSSL(validUrl);
-
-      const url1 = new URL(validUrl);
 
       // if url has nested route then convert to original url to force request it
       // did not work with nested urls from developer.mozilla.org
       // check if nested route cause instagram.com doesn't like this
       if (isUrlNested(validUrl) && clientRequest.url === '/') {
-        console.log('this is a nested URL');
         // Can't use url with https://
         // https://stackoverflow.com/questions/17690803/node-js-getaddrinfo-enotfound?rq=1
-        clientRequest.url = url1.pathname;
+        clientRequest.url = pathname;
       }
 
       const options = {
