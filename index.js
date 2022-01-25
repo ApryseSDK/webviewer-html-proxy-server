@@ -55,7 +55,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
     return false;
   }
 
-  const defaultViewport = { width: 1680, height: 1050 };
+  const defaultViewport = { width: 1440, height: 770 };
   const puppeteerOptions = {
     product: 'chrome',
     defaultViewport,
@@ -65,7 +65,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
 
   app.get('/pdftron-proxy', async (req, res) => {
     // this is the url retrieved from the input
-    let url = req.query.url;
+    const url = req.query.url;
     // ****** first check for human readable URL with simple regex
     if (!isValidURL(url)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
@@ -88,14 +88,16 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
         });
         const validUrl = pageHTTPResponse.url();
 
-        await page.goto(`${validUrl}`, {
-          waitUntil: 'domcontentloaded', // 'networkidle0',
-        });
+        if (validUrl !== url) {
+          await page.goto(`${validUrl}`, {
+            waitUntil: 'domcontentloaded', // 'networkidle0',
+          });
+        }
 
         // Get the "viewport" of the page, as reported by the page.
         const pageDimensions = await page.evaluate(() => {
           return {
-            width: document.body.scrollWidth || document.body.clientWidth || 1680,
+            width: document.body.scrollWidth || document.body.clientWidth || defaultViewport.width,
             height: document.body.scrollHeight || document.body.clientHeight || 7000,
           };
         });
@@ -170,6 +172,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
         // insecureHTTPParser: true,
         headers: {
           'User-Agent': clientRequest.headers['user-agent'],
+          'Referer': `${PATH}${pathname}`,
         }
       };
 
@@ -230,6 +233,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
             // insecureHTTPParser: true,
             headers: {
               'User-Agent': clientRequest.headers['user-agent'],
+              'Referer': `${PATH}${pathname}`,
             }
           };
 
