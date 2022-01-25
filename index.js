@@ -5,9 +5,15 @@ const http = require('http');
 const puppeteer = require('puppeteer');
 const cookieParser = require('cookie-parser');
 const getTextData = require('./utils/getTextData');
-const URL = require('url').URL
+const URL = require('url').URL;
 
-function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true }) {
+function createServer(OPTIONS) {
+  const {
+    SERVER_ROOT,
+    PORT,
+    CORS_OPTIONS,
+    COOKIE_SETTING
+  } = OPTIONS;
   console.log('createServer', SERVER_ROOT, PORT);
 
   const app = express();
@@ -105,7 +111,7 @@ function createServer(SERVER_ROOT, PORT, CORS_OPTIONS = { origin: `${SERVER_ROOT
         const selectionData = await getTextData(page);
 
         // cookie will only be set when res is sent succesfully
-        res.cookie('validURL', validUrl);
+        res.cookie('validURL', validUrl, COOKIE_SETTING);
         res.status(200).send({ pageDimensions, selectionData, validUrl });
         await browser.close();
 
