@@ -7,13 +7,12 @@ const cookieParser = require('cookie-parser');
 const getTextData = require('./utils/getTextData');
 const URL = require('url').URL;
 
-function createServer(OPTIONS) {
-  const {
-    SERVER_ROOT,
-    PORT,
-    CORS_OPTIONS,
-    COOKIE_SETTING
-  } = OPTIONS;
+function createServer({
+  SERVER_ROOT,
+  PORT,
+  CORS_OPTIONS = {},
+  COOKIE_SETTING = {}
+}) {
   console.log('createServer', SERVER_ROOT, PORT);
 
   const app = express();
@@ -76,13 +75,6 @@ function createServer(OPTIONS) {
     if (!isValidURL(url)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
-      console.log('\x1b[31m%s\x1b[0m', `
-        ***********************************************************************
-        ********************** NEW REQUEST: ${url}
-        ***********************************************************************
-      `);
-
-
       // ****** second check for puppeteer being able to goto url
       try {
         const browser = await puppeteer.launch(puppeteerOptions);
@@ -93,6 +85,12 @@ function createServer(OPTIONS) {
           waitUntil: 'domcontentloaded',
         });
         const validUrl = pageHTTPResponse.url();
+
+        console.log('\x1b[31m%s\x1b[0m', `
+          ***********************************************************************
+          ********************** NEW REQUEST: ${validUrl}
+          ***********************************************************************
+        `);
 
         if (validUrl !== url) {
           await page.goto(`${validUrl}`, {
@@ -124,6 +122,9 @@ function createServer(OPTIONS) {
 
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req, res) => {
+    console.log('\x1b[31m%s\x1b[0m', `
+      ********************** DOWNLOAD: ${req.query.url}
+    `);
     // console.log('/pdftron-download', req.cookies.validURL)
     // console.log('/pdftron-download', req.query.url)
     // check again here to avoid server being blown up, tested with saving github
@@ -150,8 +151,6 @@ function createServer(OPTIONS) {
   // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest, clientResponse) => {
-    // console.log('clientRequest in app.use(/)', clientRequest.baseUrl, clientRequest.url)
-    // console.log('clientRequest in app.use(/)', clientRequest.cookies.validURL, clientRequest.query.url)
     const validUrl = clientRequest.cookies.validURL;
     if (validUrl) {
       const {
@@ -175,11 +174,14 @@ function createServer(OPTIONS) {
         port: parsedPort,
         path: clientRequest.url,
         method: clientRequest.method,
-        // insecureHTTPParser: true,
+        insecureHTTPParser: true,
         headers: {
           'User-Agent': clientRequest.headers['user-agent'],
           'Referer': `${PATH}${pathname}`,
           'Accept-Encoding': 'identity', // for amazon to work
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Cross-Origin-Embedder-Policy': 'credentialless',
+          // 'Cache-Control': ['public, no-cache, no-store, must-revalidate'],
         }
       };
 
@@ -191,8 +193,9 @@ function createServer(OPTIONS) {
         delete serverResponse.headers['set-cookie'];
         delete serverResponse.headers['x-frame-options'];
         delete serverResponse.headers['content-security-policy'];
+        // serverResponse.headers['content-security-policy'] = `frame-ancestors 'self' ${whitelist.join(" ")}`;
         serverResponse.headers['cross-origin-resource-policy'] = 'cross-origin';
-        serverResponse.headers['cross-origin-embedder-policy'] = 'require-corp';
+        serverResponse.headers['cross-origin-embedder-policy'] = 'credentialless';
 
         // if a url is blown up, make sure to reset cache-control
         if (!!serverResponse.headers['cache-control'] && /max-age=[^0]/.test(String(serverResponse.headers['cache-control']))) {
@@ -239,7 +242,7 @@ function createServer(OPTIONS) {
             port: newParsedPort,
             path: parsedLocation,
             method: clientRequest.method,
-            // insecureHTTPParser: true,
+            insecureHTTPParser: true,
             headers: {
               'User-Agent': clientRequest.headers['user-agent'],
               'Referer': `${PATH}${pathname}`,
