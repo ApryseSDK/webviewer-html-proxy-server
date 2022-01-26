@@ -125,8 +125,6 @@ function createServer({
     console.log('\x1b[31m%s\x1b[0m', `
       ********************** DOWNLOAD: ${req.query.url}
     `);
-    // console.log('/pdftron-download', req.cookies.validURL)
-    // console.log('/pdftron-download', req.query.url)
     // check again here to avoid server being blown up, tested with saving github
     try {
       const browser = await puppeteer.launch(puppeteerOptions);
