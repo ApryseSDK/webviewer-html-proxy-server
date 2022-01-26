@@ -10,7 +10,7 @@ const URL = require('url').URL;
 function createServer({
   SERVER_ROOT,
   PORT,
-  CORS_OPTIONS = {},
+  CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true },
   COOKIE_SETTING = {}
 }) {
   console.log('createServer', SERVER_ROOT, PORT);
