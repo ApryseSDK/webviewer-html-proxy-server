@@ -17,7 +17,7 @@ See: https://expressjs.com/en/resources/middleware/cors.html and https://express
 ```
 const HTMLProxyServer = require('@pdftron/webviewer-html-proxy-server');
 HTMLProxyServer.createServer({
-    SERVER_ROOT: `0.0.0.0`,
+    SERVER_ROOT: `http://localhost`,
     PORT: 3100
 });
 ```
@@ -26,7 +26,7 @@ Setting CORS example:
 
 ```
 HTMLProxyServer.createServer({
-    SERVER_ROOT: `0.0.0.0`,
+    SERVER_ROOT: `http://localhost`,
     PORT: 3100,
     CORS_OPTIONS: {
         "origin": "*",
@@ -41,7 +41,7 @@ Setting COOKIE example:
 
 ```
 HTMLProxyServer.createServer({
-    SERVER_ROOT: `0.0.0.0`,
+    SERVER_ROOT: `http://localhost`,
     PORT: 3100,
     COOKIE_SETTING: {
         sameSite: 'none',
