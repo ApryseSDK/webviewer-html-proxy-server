@@ -9,21 +9,43 @@ npm install @pdftron/webviewer-html-proxy-server
 
 ## How to use
 
-Call the `createServer` function in your server component and pass in a `SERVER_ROOT` and `PORT`. You can, optionally, pass in the third parameter, an object to configure CORS. See: https://expressjs.com/en/resources/middleware/cors.html
+Call the `createServer` function in your server component and pass in an JSON object that includes `SERVER_ROOT` and `PORT`. You can, optionally, pass in the third parameter, an object to configure CORS and the fourth parameter, an object to configure COOKIE.
+
+See: https://expressjs.com/en/resources/middleware/cors.html and https://expressjs.com/en/api.html#res.cookie
 
 ## Example
 ```
 const HTMLProxyServer = require('@pdftron/webviewer-html-proxy-server');
-HTMLProxyServer.createServer(`0.0.0.0`, 3100);
+HTMLProxyServer.createServer({
+    SERVER_ROOT: `0.0.0.0`,
+    PORT: 3100
+});
 ```
 
 Setting CORS example:
 
 ```
-HTMLProxyServer.createServer(`0.0.0.0`, 3100, {
-    "origin": "*",
-    "methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
-    "preflightContinue": false,
-    "optionsSuccessStatus": 204
+HTMLProxyServer.createServer({
+    SERVER_ROOT: `0.0.0.0`,
+    PORT: 3100,
+    CORS_OPTIONS: {
+        "origin": "*",
+        "methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "preflightContinue": false,
+        "optionsSuccessStatus": 204
+    }
+});
+```
+
+Setting COOKIE example:
+
+```
+HTMLProxyServer.createServer({
+    SERVER_ROOT: `0.0.0.0`,
+    PORT: 3100,
+    COOKIE_SETTING: {
+        sameSite: 'none',
+        secure: true
+    }
 });
 ```
