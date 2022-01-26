@@ -78,7 +78,7 @@ function createServer(OPTIONS) {
     } else {
       console.log('\x1b[31m%s\x1b[0m', `
         ***********************************************************************
-        ************************** NEW REQUEST ********************************
+        ********************** NEW REQUEST: ${url}
         ***********************************************************************
       `);
 
@@ -179,6 +179,7 @@ function createServer(OPTIONS) {
         headers: {
           'User-Agent': clientRequest.headers['user-agent'],
           'Referer': `${PATH}${pathname}`,
+          'Accept-Encoding': 'identity', // for amazon to work
         }
       };
 
@@ -190,6 +191,8 @@ function createServer(OPTIONS) {
         delete serverResponse.headers['set-cookie'];
         delete serverResponse.headers['x-frame-options'];
         delete serverResponse.headers['content-security-policy'];
+        serverResponse.headers['cross-origin-resource-policy'] = 'cross-origin';
+        serverResponse.headers['cross-origin-embedder-policy'] = 'require-corp';
 
         // if a url is blown up, make sure to reset cache-control
         if (!!serverResponse.headers['cache-control'] && /max-age=[^0]/.test(String(serverResponse.headers['cache-control']))) {
@@ -240,6 +243,7 @@ function createServer(OPTIONS) {
             headers: {
               'User-Agent': clientRequest.headers['user-agent'],
               'Referer': `${PATH}${pathname}`,
+              'Accept-Encoding': 'identity',
             }
           };
 
