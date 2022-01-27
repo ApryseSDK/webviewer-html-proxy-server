@@ -52,13 +52,6 @@ function createServer({
   }
 
   const isUrlAbsolute = (url) => (url.indexOf('://') > 0 || url.indexOf('//') === 0);
-  const isUrlNested = (url) => {
-    let nested = url.split('/').splice(3);
-    if (nested.length > 0 && nested[0] != '') {
-      return true;
-    }
-    return false;
-  }
 
   const defaultViewport = { width: 1440, height: 770 };
   const puppeteerOptions = {
@@ -157,15 +150,6 @@ function createServer({
         parsedSSL,
         pathname
       } = getHostPortSSL(validUrl);
-
-      // if url has nested route then convert to original url to force request it
-      // did not work with nested urls from developer.mozilla.org
-      // check if nested route cause instagram.com doesn't like this
-      if (isUrlNested(validUrl) && clientRequest.url === '/') {
-        // Can't use url with https://
-        // https://stackoverflow.com/questions/17690803/node-js-getaddrinfo-enotfound?rq=1
-        clientRequest.url = pathname;
-      }
 
       const options = {
         hostname: parsedHost,
