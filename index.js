@@ -102,7 +102,7 @@ function createServer({
         const selectionData = await getTextData(page);
 
         // cookie will only be set when res is sent succesfully
-        res.cookie('validURL', validUrl, COOKIE_SETTING);
+        res.cookie('pdftron_proxy_url', validUrl, COOKIE_SETTING);
         res.status(200).send({ pageDimensions, selectionData, validUrl });
         await browser.close();
 
@@ -142,7 +142,7 @@ function createServer({
   // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest, clientResponse) => {
-    const validUrl = clientRequest.cookies.validURL;
+    const validUrl = clientRequest.cookies.pdftron_proxy_url;
     if (validUrl) {
       const {
         parsedHost,
