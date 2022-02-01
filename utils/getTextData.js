@@ -124,6 +124,12 @@ const getTextData = page => {
             }
           }
         } else {
+          // https://stackoverflow.com/a/21696585
+          if (child.nodeType == Node.ELEMENT_NODE) {
+            const style = window.getComputedStyle(child);
+            if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == 0)
+              return;
+          }
           str = traverseTextNode(child, struct, offsets, quads, str);
         }
       });

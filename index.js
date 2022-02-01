@@ -116,7 +116,7 @@ function createServer({
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req, res) => {
     console.log('\x1b[31m%s\x1b[0m', `
-      ********************** DOWNLOAD: ${req.query.url}
+          ********************** DOWNLOAD: ${req.query.url}
     `);
     // check again here to avoid server being blown up, tested with saving github
     try {
@@ -135,7 +135,7 @@ function createServer({
       await browser.close();
     } catch (err) {
       console.log(err);
-      res.status(400).end();
+      res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
     }
   });
 
@@ -191,6 +191,9 @@ function createServer({
           });
 
           serverResponse.on('end', function () {
+            const styleTag = '<style>a:active {pointer-events: none!important;}</style>';
+            body = body.replace(/(<head[^>]*>)/, "$1" + "\n" + styleTag + "\n");
+
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
           });
