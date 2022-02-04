@@ -107,7 +107,7 @@ function createServer({
         await browser.close();
 
       } catch (err) {
-        console.log('/pdftron-proxy', err);
+        console.error('/pdftron-proxy', err);
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
       }
     }
@@ -134,7 +134,7 @@ function createServer({
       res.send(buffer);
       await browser.close();
     } catch (err) {
-      console.log(err);
+      console.error('/pdftron-download', err);
       res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
     }
   });
@@ -142,6 +142,7 @@ function createServer({
   // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest, clientResponse) => {
+    console.log('clientRequest', clientRequest.url)
     const validUrl = clientRequest.cookies.pdftron_proxy_url;
     if (validUrl) {
       const {
@@ -175,7 +176,7 @@ function createServer({
         delete serverResponse.headers['set-cookie'];
         delete serverResponse.headers['x-frame-options'];
         delete serverResponse.headers['content-security-policy'];
-        // serverResponse.headers['content-security-policy'] = `frame-ancestors 'self' ${whitelist.join(" ")}`;
+        // serverResponse.headers['content-security-policy'] = `frame-ancestors 'self' ${CORS_OPTIONS.origin}`;
         serverResponse.headers['cross-origin-resource-policy'] = 'cross-origin';
         serverResponse.headers['cross-origin-embedder-policy'] = 'credentialless';
 
@@ -185,14 +186,29 @@ function createServer({
         }
         let body = '';
         // Send html content from the proxied url to the browser so that it can spawn new requests.
+        console.log('serverResponse', serverResponse.req.path)
         if (String(serverResponse.headers['content-type']).indexOf('text/html') !== -1) {
           serverResponse.on('data', function (chunk) {
             body += chunk;
           });
 
           serverResponse.on('end', function () {
-            const styleTag = '<style>a:active {pointer-events: none!important;}</style>';
-            body = body.replace(/(<head[^>]*>)/, "$1" + "\n" + styleTag + "\n");
+            console.log('serverResponse.onend')
+            // Only for pdftron website, insert style/script has to be no greater than 157 characters
+            if (!/pdftron-css/.test(body)) {
+              const styleTag = `<style type='text/css' id='pdftron-css123456797986786'>a:not([role=button]):not([href^='#']):active,button[type=submit]:active{pointer-events:none!important}</style>`;
+              // newBody += body.replace(/(<\/head[^>]*>)/gi, `\n${styleTag}\n` + "$1");
+              // const headIndex = body.indexOf("<head>");
+              const headIndex = body.indexOf("<body>");
+              if (headIndex > 0) {
+                // newBody = body.slice(0, headIndex) + "&lt;\script&gt;&lt;\/script&gt;" + body.slice(headIndex);
+                // newBody = body.slice(0, headIndex) + '<link rel="stylesheet">' + body.slice(headIndex);
+                body = body.slice(0, headIndex + 6) + "" + body.slice(headIndex + 6);
+                // newBody = body;
+              }
+              // body = body.replace(/(<\/head[^>]*>)/gi, `\n${styleTag}\n` + "$1");
+            }
+            //   const scriptTag = `<script id='proxy-pdftron-js'>window.addEventListener('beforeunload', function (e) {console.log('addEventListener', this);e.preventDefault();e.returnValue = ''})</script>`;
 
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
@@ -211,6 +227,8 @@ function createServer({
       }
 
       const serverRequest = parsedSSL.request(options, serverResponse => {
+        console.log('serverResponse', serverResponse.req.path)
+        // console.log('serverResponse', serverResponse.headers, serverResponse.url, serverResponse)
         // This is the case of urls being redirected -> retrieve new headers['location'] and request again
         if (serverResponse.statusCode >= 300 && serverResponse.statusCode <= 399) {
           const location = serverResponse.headers['location'];
