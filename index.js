@@ -186,7 +186,7 @@ function createServer({
         }
         let body = '';
         // Send html content from the proxied url to the browser so that it can spawn new requests.
-        console.log('serverResponse', serverResponse.req.path)
+        // console.log('serverResponse', serverResponse.req.path);
         if (String(serverResponse.headers['content-type']).indexOf('text/html') !== -1) {
           serverResponse.on('data', function (chunk) {
             body += chunk;
@@ -211,7 +211,7 @@ function createServer({
                 body = body.slice(0, headIndex) + scriptTag + body.slice(headIndex);
               }
             }
-
+            serverResponse.headers['content-length'] = body.length;
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
           });
@@ -229,7 +229,7 @@ function createServer({
       }
 
       const serverRequest = parsedSSL.request(options, serverResponse => {
-        console.log('serverResponse', serverResponse.req.path)
+        // console.log('serverResponse', serverResponse.req.path)
         // console.log('serverResponse', serverResponse.headers, serverResponse.url, serverResponse)
         // This is the case of urls being redirected -> retrieve new headers['location'] and request again
         if (serverResponse.statusCode >= 300 && serverResponse.statusCode <= 399) {
