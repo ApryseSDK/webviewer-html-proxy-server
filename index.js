@@ -195,20 +195,22 @@ function createServer({
           serverResponse.on('end', function () {
             console.log('serverResponse.onend')
             // Only for pdftron website, insert style/script has to be no greater than 157 characters
-            if (!/pdftron-css/.test(body)) {
-              const styleTag = `<style type='text/css' id='pdftron-css123456797986786'>a:not([role=button]):not([href^='#']):active,button[type=submit]:active{pointer-events:none!important}</style>`;
-              // newBody += body.replace(/(<\/head[^>]*>)/gi, `\n${styleTag}\n` + "$1");
-              // const headIndex = body.indexOf("<head>");
-              const headIndex = body.indexOf("<body>");
-              if (headIndex > 0) {
-                // newBody = body.slice(0, headIndex) + "&lt;\script&gt;&lt;\/script&gt;" + body.slice(headIndex);
-                // newBody = body.slice(0, headIndex) + '<link rel="stylesheet">' + body.slice(headIndex);
-                body = body.slice(0, headIndex + 6) + "" + body.slice(headIndex + 6);
-                // newBody = body;
-              }
-              // body = body.replace(/(<\/head[^>]*>)/gi, `\n${styleTag}\n` + "$1");
-            }
+            const styleTag = `<style type='text/css' id='pdftron-css-123456797986786'>a:not([role=button]):not([href^='#']):active,button[type=submit]:active{pointer-events:none!important}</style>`;
+            const scriptTag = `<script id="pdftron-js">const getSelectionData=t=>{const e=[0],n=[],s=[],o=traverseTextNode(t,e,n,s,"");return console.log({struct:e,str:o,offsets:n,quads:s}),{struct:e,str:o,offsets:n,quads:s}},isInvalidNode=t=>!t||t.getBoundingClientRect&&(0===t.getBoundingClientRect().width||0===t.getBoundingClientRect().height),traverseTextNode=(t,e,n,s,o)=>{const l=document.createRange();return t.childNodes.forEach(t=>{if(!isInvalidNode(t))if(t.nodeType===Node.TEXT_NODE){const i=t.textContent,h=i.length,c=Array.from(i).filter(t=>!("\\n"===t||" "===t||"\\t"===t)).length>0;if(0===h||!c)return;const d=[],g=s.length/8,r=[];let u=!1,a=0;for(let e=0;e<h;e++){l.setStart(t,e),l.setEnd(t,e+1);const{bottom:s,top:h,left:c,right:g}=l.getBoundingClientRect();d.push(c,s,g,s,g,h,c,h);const p=i[e];if(" "===p?n.push(-1):"\\n"===p?n.push(-2):n.push(2*n.length)," "===p||"\\n"===p){u=!1,o+=p;continue}const f=e+a;if(0===r.length||Math.abs(d[8*(f-1)+1]-d[8*f+1])>.1){if(0!==r.length){const t=i[e-1];" "!==t&&"\\n"!==t&&(o+="\\n",d.push(...d.slice(-8)),n.push(n[n.length-1]),n[n.length-2]=-2,a++)}r.push([[e+a]]),u=!0}else{const t=r[r.length-1];u?t[t.length-1].push(f):(t.push([f]),u=!0)}o+=p}s.push(...d);const p=i[h-1];" "!==p&&"\\n"!==p&&(o+="\\n",s.push(...s.slice(-8)),n.push(-2));const f=r.length;e[0]+=f;for(let t=0;t<f;t++){const n=r[t],s=n[0],o=n[n.length-1],l=s[0],i=o[o.length-1];e.push(n.length,0,d[8*l],d[8*l+1],d[8*i+4],d[8*i+5]);for(let t=0;t<n.length;t++){const s=n[t],o=s.length,l=s[0],i=s[o-1];e.push(o,l+g,o,d[8*l],d[8*i+2])}}}else{if(t.nodeType==Node.ELEMENT_NODE){const e=window.getComputedStyle(t);if("none"==e.display||"hidden"==e.visibility||0==e.opacity)return}o=traverseTextNode(t,e,n,s,o)}}),o};window.addEventListener("load",t=>{getSelectionData(document.getElementsByTagName("body")[0])});</script>`;
             //   const scriptTag = `<script id='proxy-pdftron-js'>window.addEventListener('beforeunload', function (e) {console.log('addEventListener', this);e.preventDefault();e.returnValue = ''})</script>`;
+
+            const headIndex = body.indexOf("</head>");
+            if (headIndex > 0) {
+              if (!/pdftron-css/.test(body)) {
+                body = body.slice(0, headIndex) + styleTag + body.slice(headIndex);
+              }
+
+              if (!/pdftron-js/.test(body)) {
+                // body = body.slice(0, headIndex) + '<link rel="stylesheet">' + body.slice(headIndex);
+                // body = body.replace(/(<\/head[^>]*>)/gi, `\n${scriptTag}\n` + "$1");
+                body = body.slice(0, headIndex) + scriptTag + body.slice(headIndex);
+              }
+            }
 
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
