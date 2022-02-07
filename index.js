@@ -102,7 +102,8 @@ function createServer({
         const selectionData = await getTextData(page);
 
         // cookie will only be set when res is sent succesfully
-        res.cookie('pdftron_proxy_url', validUrl, COOKIE_SETTING);
+        const oneHour = 1000 * 60 * 60;
+        res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
         res.status(200).send({ pageDimensions, selectionData, validUrl });
         await browser.close();
 
@@ -142,8 +143,7 @@ function createServer({
   // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest, clientResponse) => {
-    console.log('clientRequest', clientRequest.url)
-    const validUrl = clientRequest.cookies.pdftron_proxy_url;
+    const validUrl = clientRequest.cookies.pdftron_proxy_sid;
     if (validUrl) {
       const {
         parsedHost,
@@ -164,7 +164,7 @@ function createServer({
           'Accept-Encoding': 'identity', // for amazon to work
           'Cross-Origin-Resource-Policy': 'cross-origin',
           'Cross-Origin-Embedder-Policy': 'credentialless',
-          // 'Cache-Control': ['public, no-cache, no-store, must-revalidate'],
+          'Cache-Control': ['public, no-cache, no-store, must-revalidate'],
         }
       };
 
@@ -211,13 +211,15 @@ function createServer({
                 body = body.slice(0, headIndex) + scriptTag + body.slice(headIndex);
               }
             }
-            serverResponse.headers['content-length'] = body.length;
+            const contentLength = serverResponse.headers['content-length'];
+            if (!!contentLength && contentLength < body.length) {
+              serverResponse.headers['content-length'] = body.length;
+            }
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
           });
         } else {
-          // Pipe the server response from the proxied url to the browser so that new requests can be spawned for
-          // non-html content (js/css/json etc.)
+          // Pipe the server response from the proxied url to the browser so that new requests can be spawned for non-html content (js/css/json etc.)
           serverResponse.pipe(clientResponse, {
             end: true,
           });
