@@ -4,8 +4,11 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 const cookieParser = require('cookie-parser');
-const getTextData = require('./utils/getTextData');
-const URL = require('url').URL;
+const { URL } = require('url');
+const fs = require('fs');
+const path = require('path');
+
+const scriptForInjection = fs.readFileSync(path.resolve(__dirname, './utils/getTextDataUnminified.js'), 'utf8');
 
 function createServer({
   SERVER_ROOT,
@@ -192,7 +195,7 @@ function createServer({
 
           serverResponse.on('end', function () {
             const styleTag = `<style type="text/css" id="pdftron-css">a:not([role=button]):not([href^='#']):active,button[type=submit]:active{pointer-events:none!important}</style>`;
-            const scriptTag = `<script type="text/javascript" id="pdftron-js">const getTextData=t=>{const e=(t,n,o,s,i)=>{const g=document.createRange();return t.childNodes.forEach(t=>{if(!(t=>!t||t.getBoundingClientRect&&(0===t.getBoundingClientRect().width||0===t.getBoundingClientRect().height))(t))if(t.nodeType===Node.TEXT_NODE){const e=t.textContent,h=e.length,l=Array.from(e).filter(t=>!("\\n"===t||" "===t||"\\t"===t)).length>0;if(0===h||!l)return;const c=[],r=s.length/8,u=[];let d=!1,a=0;for(let n=0;n<h;n++){g.setStart(t,n),g.setEnd(t,n+1);const{bottom:s,top:h,left:l,right:r}=g.getBoundingClientRect();c.push(l,s,r,s,r,h,l,h);const p=e[n];if(" "===p?o.push(-1):"\\n"===p?o.push(-2):o.push(2*o.length)," "===p||"\\n"===p){d=!1,i+=p;continue}const f=n+a;if(0===u.length||Math.abs(c[8*(f-1)+1]-c[8*f+1])>.1){if(0!==u.length){const t=e[n-1];" "!==t&&"\\n"!==t&&(i+="\\n",c.push(...c.slice(-8)),o.push(o[o.length-1]),o[o.length-2]=-2,a++)}u.push([[n+a]]),d=!0}else{const t=u[u.length-1];d?t[t.length-1].push(f):(t.push([f]),d=!0)}i+=p}s.push(...c);const p=e[h-1];" "!==p&&"\\n"!==p&&(i+="\\n",s.push(...s.slice(-8)),o.push(-2));const f=u.length;n[0]+=f;for(let t=0;t<f;t++){const e=u[t],o=e[0],s=e[e.length-1],i=o[0],g=s[s.length-1];n.push(e.length,0,c[8*i],c[8*i+1],c[8*g+4],c[8*g+5]);for(let t=0;t<e.length;t++){const o=e[t],s=o.length,i=o[0],g=o[s-1];n.push(s,i+r,s,c[8*i],c[8*g+2])}}}else{if(t.nodeType==Node.ELEMENT_NODE){const e=window.getComputedStyle(t);if("none"==e.display||"hidden"==e.visibility||0==e.opacity)return}i=e(t,n,o,s,i)}}),i};return(t=>{const n=[0],o=[],s=[];return{struct:n,str:e(t,n,o,s,""),offsets:o,quads:s}})(t)};window.addEventListener("message",t=>{"${CORS_OPTIONS.origin}"==t.origin&&"loadTextData"==t.data&&(console.log("message loadTextData",t.origin),window.parent.postMessage(JSON.stringify(getTextData(document.body)),"${CORS_OPTIONS.origin}"))});</script>`;
+            const scriptTag = `<script type="text/javascript" id="pdftron-js">${scriptForInjection}</script>`;
             // const scriptTag = `<script id='pdftron-js'>window.addEventListener('beforeunload', function (e) {console.log('addEventListener', this.top);e.preventDefault();e.returnValue = ''})</script>`; // need to test again
 
             const headIndex = body.indexOf("</head>");
