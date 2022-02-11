@@ -94,17 +94,15 @@ function createServer({
         // Get the "viewport" of the page, as reported by the page.
         const pageDimensions = await page.evaluate(() => {
           return {
-            width: document.body.scrollWidth || document.body.clientWidth || defaultViewport.width,
+            width: document.body.scrollWidth || document.body.clientWidth || 1440,
             height: document.body.scrollHeight || document.body.clientHeight || 7000,
           };
         });
 
-        const selectionData = await getTextData(page);
-
         // cookie will only be set when res is sent succesfully
         const oneHour = 1000 * 60 * 60;
         res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
-        res.status(200).send({ pageDimensions, selectionData, validUrl });
+        res.status(200).send({ pageDimensions, validUrl });
         await browser.close();
 
       } catch (err) {
