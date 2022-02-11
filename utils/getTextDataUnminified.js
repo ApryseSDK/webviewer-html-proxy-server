@@ -163,7 +163,9 @@ window.addEventListener('message', e => {
   if (e.origin == '${CORS_OPTIONS.origin}' && e.data == 'loadTextData') {
     console.log('message loadTextData', e.origin);
     const selectionData = getTextData(document.body);
-    window.parent.postMessage({ selectionData }, '${CORS_OPTIONS.origin}');
+    // window.parent.postMessage({ selectionData }, '${CORS_OPTIONS.origin}');
+    const linkData = getLinks(document.body);
+    window.parent.postMessage({ selectionData, linkData }, '${CORS_OPTIONS.origin}');
   }
 });
 
