@@ -8,10 +8,6 @@ const getTextData = (body) => {
     return { struct, str, offsets, quads };
   }
 
-  const isInvalidNode = (node) => {
-    return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
-  }
-
   const traverseTextNode = (parentNode, struct, offsets, quads, str) => {
     const range = document.createRange();
     parentNode.childNodes.forEach(child => {
@@ -138,6 +134,31 @@ const getTextData = (body) => {
   return getSelectionData(body);
 }
 
+const isInvalidNode = (node) => {
+  return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
+}
+
+const getLinks = (pageBody) => {
+  const linksArray = [];
+
+  const traverseLinkNode = (parentNode, linksArray) => {
+    parentNode.childNodes.forEach(child => {
+      if (isInvalidNode(child))
+        return;
+      if (child.tagName === 'A' && !!child.href) {
+        const clientRect = child.getBoundingClientRect();
+        linksArray.push({ clientRect, href: child.getAttribute('href') });
+      } else {
+        traverseLinkNode(child, linksArray);
+      }
+    });
+    return linksArray;
+  }
+
+  return traverseLinkNode(pageBody, linksArray);
+}
+
+
 window.addEventListener('message', e => {
   if (e.origin == '${CORS_OPTIONS.origin}' && e.data == 'loadTextData') {
     console.log('message loadTextData', e.origin);
@@ -145,6 +166,18 @@ window.addEventListener('message', e => {
     window.parent.postMessage({ selectionData }, '${CORS_OPTIONS.origin}');
   }
 });
+
+
+// window.addEventListener('message', e => {
+//   if (e.origin == '${CORS_OPTIONS.origin}' && e.data == 'loadTextData') {
+//     console.log('message loadTextData', e.origin);
+//     const dataFromIframe = {
+//       selectionData: getTextData(document.body),
+//       iframeHeight: document.body.scrollHeight || document.body.clientHeight || 7000
+//     }
+//     window.parent.postMessage(JSON.stringify(dataFromIframe), '${CORS_OPTIONS.origin}');
+//   }
+// }, false);
 
 // NOTES:
 // https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
