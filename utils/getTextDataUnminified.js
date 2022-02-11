@@ -160,12 +160,13 @@ const getLinks = (pageBody) => {
 
 
 window.addEventListener('message', e => {
-  if (e.origin == '${CORS_OPTIONS.origin}' && e.data == 'loadTextData') {
+  if (e.origin == 'http://localhost:3000' && e.data == 'loadTextData') {
     console.log('message loadTextData', e.origin);
     const selectionData = getTextData(document.body);
-    // window.parent.postMessage({ selectionData }, '${CORS_OPTIONS.origin}');
+    const iframeHeight = document.body.scrollHeight || document.body.clientHeight || 7000;
+    // window.parent.postMessage({ selectionData }, 'http://localhost:3000');
     const linkData = getLinks(document.body);
-    window.parent.postMessage({ selectionData, linkData }, '${CORS_OPTIONS.origin}');
+    window.parent.postMessage({ selectionData, linkData, iframeHeight }, 'http://localhost:3000');
   }
 });
 
