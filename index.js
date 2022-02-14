@@ -4,7 +4,6 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 const cookieParser = require('cookie-parser');
-const getTextData = require('./utils/getTextData');
 const URL = require('url').URL;
 
 function createServer({
@@ -94,17 +93,15 @@ function createServer({
         // Get the "viewport" of the page, as reported by the page.
         const pageDimensions = await page.evaluate(() => {
           return {
-            width: document.body.scrollWidth || document.body.clientWidth || defaultViewport.width,
+            width: document.body.scrollWidth || document.body.clientWidth || 1440,
             height: document.body.scrollHeight || document.body.clientHeight || 7000,
           };
         });
 
-        const selectionData = await getTextData(page);
-
         // cookie will only be set when res is sent succesfully
         const oneHour = 1000 * 60 * 60;
         res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
-        res.status(200).send({ pageDimensions, selectionData, validUrl });
+        res.status(200).send({ pageDimensions, validUrl });
         await browser.close();
 
       } catch (err) {
@@ -193,11 +190,8 @@ function createServer({
           });
 
           serverResponse.on('end', function () {
-            console.log('serverResponse.onend')
-            // Only for pdftron website, insert style/script has to be no greater than 157 characters
-            const styleTag = `<style type='text/css' id='pdftron-css-123456797986786'>a:not([role=button]):not([href^='#']):active,button[type=submit]:active{pointer-events:none!important}</style>`;
-            const scriptTag = `<script id="pdftron-js">const getSelectionData=t=>{const e=[0],n=[],s=[],o=traverseTextNode(t,e,n,s,"");return console.log({struct:e,str:o,offsets:n,quads:s}),{struct:e,str:o,offsets:n,quads:s}},isInvalidNode=t=>!t||t.getBoundingClientRect&&(0===t.getBoundingClientRect().width||0===t.getBoundingClientRect().height),traverseTextNode=(t,e,n,s,o)=>{const l=document.createRange();return t.childNodes.forEach(t=>{if(!isInvalidNode(t))if(t.nodeType===Node.TEXT_NODE){const i=t.textContent,h=i.length,c=Array.from(i).filter(t=>!("\\n"===t||" "===t||"\\t"===t)).length>0;if(0===h||!c)return;const d=[],g=s.length/8,r=[];let u=!1,a=0;for(let e=0;e<h;e++){l.setStart(t,e),l.setEnd(t,e+1);const{bottom:s,top:h,left:c,right:g}=l.getBoundingClientRect();d.push(c,s,g,s,g,h,c,h);const p=i[e];if(" "===p?n.push(-1):"\\n"===p?n.push(-2):n.push(2*n.length)," "===p||"\\n"===p){u=!1,o+=p;continue}const f=e+a;if(0===r.length||Math.abs(d[8*(f-1)+1]-d[8*f+1])>.1){if(0!==r.length){const t=i[e-1];" "!==t&&"\\n"!==t&&(o+="\\n",d.push(...d.slice(-8)),n.push(n[n.length-1]),n[n.length-2]=-2,a++)}r.push([[e+a]]),u=!0}else{const t=r[r.length-1];u?t[t.length-1].push(f):(t.push([f]),u=!0)}o+=p}s.push(...d);const p=i[h-1];" "!==p&&"\\n"!==p&&(o+="\\n",s.push(...s.slice(-8)),n.push(-2));const f=r.length;e[0]+=f;for(let t=0;t<f;t++){const n=r[t],s=n[0],o=n[n.length-1],l=s[0],i=o[o.length-1];e.push(n.length,0,d[8*l],d[8*l+1],d[8*i+4],d[8*i+5]);for(let t=0;t<n.length;t++){const s=n[t],o=s.length,l=s[0],i=s[o-1];e.push(o,l+g,o,d[8*l],d[8*i+2])}}}else{if(t.nodeType==Node.ELEMENT_NODE){const e=window.getComputedStyle(t);if("none"==e.display||"hidden"==e.visibility||0==e.opacity)return}o=traverseTextNode(t,e,n,s,o)}}),o};window.addEventListener("load",t=>{getSelectionData(document.getElementsByTagName("body")[0])});</script>`;
-            //   const scriptTag = `<script id='proxy-pdftron-js'>window.addEventListener('beforeunload', function (e) {console.log('addEventListener', this);e.preventDefault();e.returnValue = ''})</script>`;
+            const styleTag = `<style type="text/css" id="pdftron-css">a:not([role=button]):not([href^='#']):active,button[type=submit]:active{pointer-events:none!important}</style>`;
+            const scriptTag = `<script type="text/javascript" id="pdftron-js">window.addEventListener("message",(t=>{if("${CORS_OPTIONS.origin}"==t.origin&&"loadTextData"==t.data){const t=(t=>{const e=(t,n,s,o,i)=>{const h=document.createRange();return t.childNodes.forEach((t=>{var l;if((l=t)&&(!l.getBoundingClientRect||0!==l.getBoundingClientRect().width&&0!==l.getBoundingClientRect().height))if(t.nodeType===Node.TEXT_NODE){const e=t.textContent,l=e.length,g=Array.from(e).filter((t=>!("\\n"===t||" "===t||"\\t"===t))).length>0;if(0===l||!g)return;const c=[],r=o.length/8,u=[];let d=!1,a=0;for(let n=0;n<l;n++){h.setStart(t,n),h.setEnd(t,n+1);const{bottom:o,top:l,left:g,right:r}=h.getBoundingClientRect();c.push(g,o,r,o,r,l,g,l);const p=e[n];if(" "===p?s.push(-1):"\\n"===p?s.push(-2):s.push(2*s.length)," "===p||"\\n"===p){d=!1,i+=p;continue}const f=n+a;if(0===u.length||Math.abs(c[8*(f-1)+1]-c[8*f+1])>.1){if(0!==u.length){const t=e[n-1];" "!==t&&"\\n"!==t&&(i+="\\n",c.push(...c.slice(-8)),s.push(s[s.length-1]),s[s.length-2]=-2,a++)}u.push([[n+a]]),d=!0}else{const t=u[u.length-1];d?t[t.length-1].push(f):(t.push([f]),d=!0)}i+=p}o.push(...c);const p=e[l-1];" "!==p&&"\\n"!==p&&(i+="\\n",o.push(...o.slice(-8)),s.push(-2));const f=u.length;n[0]+=f;for(let t=0;t<f;t++){const e=u[t],s=e[0],o=e[e.length-1],i=s[0],h=o[o.length-1];n.push(e.length,0,c[8*i],c[8*i+1],c[8*h+4],c[8*h+5]);for(let t=0;t<e.length;t++){const s=e[t],o=s.length,i=s[0],h=s[o-1];n.push(o,i+r,o,c[8*i],c[8*h+2])}}}else{if(t.nodeType==Node.ELEMENT_NODE){const e=window.getComputedStyle(t);if("none"==e.display||"hidden"==e.visibility||0==e.opacity)return}i=e(t,n,s,o,i)}})),i};return(t=>{const n=[0],s=[],o=[];return{struct:n,str:e(t,n,s,o,""),offsets:s,quads:o}})(t)})(document.body);window.parent.postMessage({selectionData:t},"${CORS_OPTIONS.origin}")}}));</script>`;
 
             const headIndex = body.indexOf("</head>");
             if (headIndex > 0) {
@@ -206,8 +200,6 @@ function createServer({
               }
 
               if (!/pdftron-js/.test(body)) {
-                // body = body.slice(0, headIndex) + '<link rel="stylesheet">' + body.slice(headIndex);
-                // body = body.replace(/(<\/head[^>]*>)/gi, `\n${scriptTag}\n` + "$1");
                 body = body.slice(0, headIndex) + scriptTag + body.slice(headIndex);
               }
             }
