@@ -138,9 +138,13 @@ const getTextData = (body) => {
   return getSelectionData(body);
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  const selectionData = getTextData(document.body);
+  window.parent.postMessage({ selectionData }, '${CORS_OPTIONS.origin}');
+});
+
 window.addEventListener('message', e => {
   if (e.origin == '${CORS_OPTIONS.origin}' && e.data == 'loadTextData') {
-    console.log('message loadTextData', e.origin);
     const selectionData = getTextData(document.body);
     window.parent.postMessage({ selectionData }, '${CORS_OPTIONS.origin}');
   }
