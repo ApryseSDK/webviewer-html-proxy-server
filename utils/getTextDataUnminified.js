@@ -138,15 +138,21 @@ const getTextData = (body) => {
   return getSelectionData(body);
 }
 
+const getClientUrl = () => {
+  const { origin } = new URL(document.referrer);
+  return origin;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const selectionData = getTextData(document.body);
-  window.parent.postMessage({ selectionData }, '${CORS_OPTIONS.origin}');
+  window.parent.postMessage({ selectionData }, getClientUrl());
 });
 
 window.addEventListener('message', e => {
-  if (e.origin == '${CORS_OPTIONS.origin}' && e.data == 'loadTextData') {
+  console.log('from iframe', e.origin, getClientUrl())
+  if (e.origin == getClientUrl() && e.data == 'loadTextData') {
     const selectionData = getTextData(document.body);
-    window.parent.postMessage({ selectionData }, '${CORS_OPTIONS.origin}');
+    window.parent.postMessage({ selectionData }, getClientUrl());
   }
 });
 
