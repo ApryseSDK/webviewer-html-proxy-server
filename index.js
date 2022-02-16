@@ -180,7 +180,7 @@ function createServer({
         // serverResponse.headers['content-security-policy'] = `frame-ancestors 'self' ${CORS_OPTIONS.origin}`;
         serverResponse.headers['cross-origin-resource-policy'] = 'cross-origin';
         // 'require-corp' works fine on staging but doesn't on localhost: should use 'credentialless'
-        serverResponse.headers['cross-origin-embedder-policy'] = 'require-corp';
+        serverResponse.headers['cross-origin-embedder-policy'] = 'credentialless';
         // serverResponse.headers['cross-origin-opener-policy'] = 'same-origin';
 
         // if a url is blown up, make sure to reset cache-control
