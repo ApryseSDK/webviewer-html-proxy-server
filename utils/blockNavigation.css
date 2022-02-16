@@ -1,0 +1,19 @@
+/* 
+    Block all a tags that don't start with # 
+    and don't have role="button"
+*/
+a:not([href^="#"]):not([role="button"]):active {
+    pointer-events: none !important;
+}
+  
+button[type="submit"]:active {
+    pointer-events: none !important;
+}
+
+input[type="submit"]:active {
+    pointer-events: none !important;
+}
+
+section:active {
+    pointer-events: none !important;
+}
