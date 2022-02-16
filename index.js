@@ -4,7 +4,11 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 const cookieParser = require('cookie-parser');
-const URL = require('url').URL;
+const { URL } = require('url');
+const fs = require('fs');
+const path = require('path');
+
+const scriptForInjection = fs.readFileSync(path.resolve(__dirname, './utils/getTextDataUnminified.js'), 'utf8');
 
 function createServer({
   SERVER_ROOT,
@@ -190,7 +194,7 @@ function createServer({
 
           serverResponse.on('end', function () {
             const styleTag = `<style type="text/css" id="pdftron-css">a:not([role=button]):not([href^='#']):active,button[type=submit]:active{pointer-events:none!important}</style>`;
-            const scriptTag = `<script type="text/javascript" id="pdftron-js">const t=t=>{const e=(t,n,o,s,i)=>{const c=document.createRange();return t.childNodes.forEach((t=>{var l;if((l=t)&&(!l.getBoundingClientRect||0!==l.getBoundingClientRect().width&&0!==l.getBoundingClientRect().height))if(t.nodeType===Node.TEXT_NODE){const e=t.textContent,l=e.length,r=Array.from(e).filter((t=>!("\\n"===t||" "===t||"\\t"===t))).length>0;if(0===l||!r)return;const h=[],d=s.length/8,g=[];let u=!1,a=0;for(let n=0;n<l;n++){c.setStart(t,n),c.setEnd(t,n+1);const{bottom:s,top:l,left:r,right:d}=c.getBoundingClientRect();h.push(r,s,d,s,d,l,r,l);const p=e[n];if(" "===p?o.push(-1):"\\n"===p?o.push(-2):o.push(2*o.length)," "===p||"\\n"===p){u=!1,i+=p;continue}const f=n+a;if(0===g.length||Math.abs(h[8*(f-1)+1]-h[8*f+1])>.1){if(0!==g.length){const t=e[n-1];" "!==t&&"\\n"!==t&&(i+="\\n",h.push(...h.slice(-8)),o.push(o[o.length-1]),o[o.length-2]=-2,a++)}g.push([[n+a]]),u=!0}else{const t=g[g.length-1];u?t[t.length-1].push(f):(t.push([f]),u=!0)}i+=p}s.push(...h);const p=e[l-1];" "!==p&&"\\n"!==p&&(i+="\\n",s.push(...s.slice(-8)),o.push(-2));const f=g.length;n[0]+=f;for(let t=0;t<f;t++){const e=g[t],o=e[0],s=e[e.length-1],i=o[0],c=s[s.length-1];n.push(e.length,0,h[8*i],h[8*i+1],h[8*c+4],h[8*c+5]);for(let t=0;t<e.length;t++){const o=e[t],s=o.length,i=o[0],c=o[s-1];n.push(s,i+d,s,h[8*i],h[8*c+2])}}}else{if(t.nodeType==Node.ELEMENT_NODE){const e=window.getComputedStyle(t);if("none"==e.display||"hidden"==e.visibility||0==e.opacity)return}i=e(t,n,o,s,i)}})),i};return(t=>{const n=[0],o=[],s=[];return{struct:n,str:e(t,n,o,s,""),offsets:o,quads:s}})(t)},e=()=>{const{origin:t}=new URL(document.referrer);return t};document.addEventListener("DOMContentLoaded",(()=>{const n=t(document.body);window.parent.postMessage({selectionData:n},e())})),window.addEventListener("message",(n=>{if(console.log("from iframe",n.origin,e()),n.origin==e()&&"loadTextData"==n.data){const n=t(document.body);window.parent.postMessage({selectionData:n},e())}}));</script>`;
+            const scriptTag = `<script type="text/javascript" id="pdftron-js">${scriptForInjection}</script>`;
 
             const headIndex = body.indexOf("</head>");
             if (headIndex > 0) {
