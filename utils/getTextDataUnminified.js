@@ -162,6 +162,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // for amazon search input keypress enter
     x.onkeydown = onKeydownCB;
   });
+
+  // for wikipedia <select> language keypress enter
+  document.querySelectorAll('select').forEach(x => x.onkeydown = onKeydownCB);
+
 });
 
 window.addEventListener('message', e => {
