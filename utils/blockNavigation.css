@@ -21,6 +21,7 @@ input[type="search"] {
     pointer-events: none !important;
 }
 
+/* for google dropdown search */
 li:active {
     pointer-events: none !important;
 }
