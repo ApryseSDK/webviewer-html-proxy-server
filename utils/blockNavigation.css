@@ -5,15 +5,22 @@
 a:not([href^="#"]):not([role="button"]):active {
     pointer-events: none !important;
 }
-  
+
 button[type="submit"]:active {
     pointer-events: none !important;
 }
 
-input[type="submit"]:active {
+/* search on amazon */
+input[type="submit"]:active,
+input[type="search"] {
     pointer-events: none !important;
 }
 
-section:active {
+/* for google the voice icon */
+*:not(a):not(button):not(input)[role="button"]:active {
+    pointer-events: none !important;
+}
+
+li:active {
     pointer-events: none !important;
 }

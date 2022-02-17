@@ -143,13 +143,28 @@ const getClientUrl = () => {
   return origin;
 }
 
+const onKeydownCB = (e) => {
+  if (e.key == 'Enter') {
+    e.preventDefault();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const selectionData = getTextData(document.body);
   window.parent.postMessage({ selectionData }, getClientUrl());
+
+  document.querySelectorAll('a:not([href^="#"])').forEach(x => x.setAttribute('href', 'javascript:void(0);'));
+  // for keyboard tabbing
+  document.querySelectorAll('a, button, [role="button"], input').forEach(x => x.setAttribute("tabindex", -1));
+
+  document.querySelectorAll('input').forEach(x => {
+    x.readOnly = true;
+    // for amazon search input keypress enter
+    x.onkeydown = onKeydownCB;
+  });
 });
 
 window.addEventListener('message', e => {
-  console.log('from iframe', e.origin, getClientUrl())
   if (e.origin == getClientUrl() && e.data == 'loadTextData') {
     const selectionData = getTextData(document.body);
     window.parent.postMessage({ selectionData }, getClientUrl());
