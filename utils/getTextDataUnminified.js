@@ -20,7 +20,7 @@ const getTextData = (body) => {
       if (child.nodeType === Node.TEXT_NODE) {
         const cText = child.textContent;
         const cTextLength = cText.length;
-        const isValidText = Array.from(cText).filter(c => !(c === '\\n' || c === ' ' || c === '\\t')).length > 0;
+        const isValidText = Array.from(cText).filter(c => !(c === '\n' || c === ' ' || c === '\t')).length > 0;
         if (cTextLength === 0 || !isValidText)
           return;
 
@@ -40,13 +40,13 @@ const getTextData = (body) => {
           const curChar = cText[i];
           if (curChar === ' ') {
             offsets.push(-1);
-          } else if (curChar === '\\n') {
+          } else if (curChar === '\n') {
             offsets.push(-2);
           } else {
             offsets.push(offsets.length * 2);
           }
           // Build lines
-          if (curChar === ' ' || curChar === '\\n') {
+          if (curChar === ' ' || curChar === '\n') {
             canAppendWord = false;
             str += curChar;
             continue;
@@ -56,8 +56,8 @@ const getTextData = (body) => {
             // Add extra line break if needed
             if (lines.length !== 0) {
               const prevChar = cText[i - 1];
-              if (!(prevChar === ' ' || prevChar === '\\n')) {
-                str += '\\n';
+              if (!(prevChar === ' ' || prevChar === '\n')) {
+                str += '\n';
                 cQuads.push(...cQuads.slice(-8));
                 offsets.push(offsets[offsets.length - 1]);
                 offsets[offsets.length - 2] = -2;
@@ -85,8 +85,8 @@ const getTextData = (body) => {
 
         // Add extra line break if needed
         const lastChar = cText[cTextLength - 1];
-        if (!(lastChar === ' ' || lastChar === '\\n')) {
-          str += '\\n';
+        if (!(lastChar === ' ' || lastChar === '\n')) {
+          str += '\n';
           quads.push(...quads.slice(-8));
           offsets.push(-2);
         }
@@ -138,15 +138,26 @@ const getTextData = (body) => {
   return getSelectionData(body);
 }
 
+const getClientUrl = () => {
+  const { origin } = new URL(document.referrer);
+  return origin;
+}
+
+const onKeydownCB = (e) => {
+  if (e.key == 'Enter') {
+    e.preventDefault();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const selectionData = getTextData(document.body);
-  window.parent.postMessage({ selectionData }, '${CORS_OPTIONS.origin}');
+  window.parent.postMessage({ selectionData }, getClientUrl());
 });
 
 window.addEventListener('message', e => {
-  if (e.origin == '${CORS_OPTIONS.origin}' && e.data == 'loadTextData') {
+  if (e.origin == getClientUrl() && e.data == 'loadTextData') {
     const selectionData = getTextData(document.body);
-    window.parent.postMessage({ selectionData }, '${CORS_OPTIONS.origin}');
+    window.parent.postMessage({ selectionData }, getClientUrl());
   }
 });
 

@@ -4,12 +4,18 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 const cookieParser = require('cookie-parser');
-const URL = require('url').URL;
+const { URL } = require('url');
+const fs = require('fs');
+const path = require('path');
+
+const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, './utils/getTextDataUnminified.js'), 'utf8');
+const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigationUnminified.js'), 'utf8');
+const onbeforeunloadScript = fs.readFileSync(path.resolve(__dirname, './utils/onbeforeunload.js'), 'utf8');
+const blockNavigationStyle = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigation.css'), 'utf8');
 
 function createServer({
   SERVER_ROOT,
   PORT,
-  CLIENT_URL = `${SERVER_ROOT}:3000`,
   CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true },
   COOKIE_SETTING = {}
 }) {
@@ -160,8 +166,8 @@ function createServer({
           'User-Agent': clientRequest.headers['user-agent'],
           'Referer': `${PATH}${pathname}`,
           'Accept-Encoding': 'identity', // for amazon to work
-          'Cross-Origin-Resource-Policy': 'cross-origin',
-          'Cross-Origin-Embedder-Policy': 'credentialless',
+          // 'Cross-Origin-Resource-Policy': 'cross-origin',
+          // 'Cross-Origin-Embedder-Policy': 'credentialless',
           'Cache-Control': ['public, no-cache, no-store, must-revalidate'],
         }
       };
@@ -176,7 +182,9 @@ function createServer({
         delete serverResponse.headers['content-security-policy'];
         // serverResponse.headers['content-security-policy'] = `frame-ancestors 'self' ${CORS_OPTIONS.origin}`;
         serverResponse.headers['cross-origin-resource-policy'] = 'cross-origin';
+        // 'require-corp' works fine on staging but doesn't on localhost: should use 'credentialless'
         serverResponse.headers['cross-origin-embedder-policy'] = 'credentialless';
+        // serverResponse.headers['cross-origin-opener-policy'] = 'same-origin';
 
         // if a url is blown up, make sure to reset cache-control
         if (!!serverResponse.headers['cache-control'] && /max-age=[^0]/.test(String(serverResponse.headers['cache-control']))) {
@@ -190,17 +198,22 @@ function createServer({
           });
 
           serverResponse.on('end', function () {
-            const styleTag = `<style type="text/css" id="pdftron-css">a:not([role=button]):not([href^='#']):active,button[type=submit]:active{pointer-events:none!important}</style>`;
-            const scriptTag = `<script type="text/javascript" id="pdftron-js">const t=t=>{const e=(t,n,o,s,i)=>{const h=document.createRange();return t.childNodes.forEach((t=>{var l;if((l=t)&&(!l.getBoundingClientRect||0!==l.getBoundingClientRect().width&&0!==l.getBoundingClientRect().height))if(t.nodeType===Node.TEXT_NODE){const e=t.textContent,l=e.length,c=Array.from(e).filter((t=>!("\\n"===t||" "===t||"\\t"===t))).length>0;if(0===l||!c)return;const d=[],g=s.length/8,u=[];let r=!1,a=0;for(let n=0;n<l;n++){h.setStart(t,n),h.setEnd(t,n+1);const{bottom:s,top:l,left:c,right:g}=h.getBoundingClientRect();d.push(c,s,g,s,g,l,c,l);const p=e[n];if(" "===p?o.push(-1):"\\n"===p?o.push(-2):o.push(2*o.length)," "===p||"\\n"===p){r=!1,i+=p;continue}const f=n+a;if(0===u.length||Math.abs(d[8*(f-1)+1]-d[8*f+1])>.1){if(0!==u.length){const t=e[n-1];" "!==t&&"\\n"!==t&&(i+="\\n",d.push(...d.slice(-8)),o.push(o[o.length-1]),o[o.length-2]=-2,a++)}u.push([[n+a]]),r=!0}else{const t=u[u.length-1];r?t[t.length-1].push(f):(t.push([f]),r=!0)}i+=p}s.push(...d);const p=e[l-1];" "!==p&&"\\n"!==p&&(i+="\\n",s.push(...s.slice(-8)),o.push(-2));const f=u.length;n[0]+=f;for(let t=0;t<f;t++){const e=u[t],o=e[0],s=e[e.length-1],i=o[0],h=s[s.length-1];n.push(e.length,0,d[8*i],d[8*i+1],d[8*h+4],d[8*h+5]);for(let t=0;t<e.length;t++){const o=e[t],s=o.length,i=o[0],h=o[s-1];n.push(s,i+g,s,d[8*i],d[8*h+2])}}}else{if(t.nodeType==Node.ELEMENT_NODE){const e=window.getComputedStyle(t);if("none"==e.display||"hidden"==e.visibility||0==e.opacity)return}i=e(t,n,o,s,i)}})),i};return(t=>{const n=[0],o=[],s=[];return{struct:n,str:e(t,n,o,s,""),offsets:o,quads:s}})(t)};document.addEventListener("DOMContentLoaded",(()=>{const e=t(document.body);window.parent.postMessage({selectionData:e},"${CLIENT_URL}")})),window.addEventListener("message",(e=>{if("${CLIENT_URL}"==e.origin&&"loadTextData"==e.data){const e=t(document.body);window.parent.postMessage({selectionData:e},"${CLIENT_URL}")}}));</script>`;
+            const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
+            const textScript = `<script type='text/javascript' id='pdftron-text-js'>${sendTextDataScript}</script>`;
+            const navigationScript = `<script type='text/javascript' id='pdftron-navigation-js'>${blockNavigationScript}</script>`;
 
-            const headIndex = body.indexOf("</head>");
+            const headIndex = body.indexOf('</head>');
             if (headIndex > 0) {
               if (!/pdftron-css/.test(body)) {
                 body = body.slice(0, headIndex) + styleTag + body.slice(headIndex);
               }
 
-              if (!/pdftron-js/.test(body)) {
-                body = body.slice(0, headIndex) + scriptTag + body.slice(headIndex);
+              if (!/pdftron-text-js/.test(body)) {
+                body = body.slice(0, headIndex) + textScript + body.slice(headIndex);
+              }
+
+              if (!/pdftron-navigation-js/.test(body)) {
+                body = body.slice(0, headIndex) + navigationScript + body.slice(headIndex);
               }
             }
 
