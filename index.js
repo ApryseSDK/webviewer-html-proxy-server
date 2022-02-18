@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, './utils/getTextDataUnminified.js'), 'utf8');
+const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigationUnminified.js'), 'utf8');
 const onbeforeunloadScript = fs.readFileSync(path.resolve(__dirname, './utils/onbeforeunload.js'), 'utf8');
 const blockNavigationStyle = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigation.css'), 'utf8');
 
@@ -197,19 +198,22 @@ function createServer({
           });
 
           serverResponse.on('end', function () {
-            const styleTag = `<style type="text/css" id="pdftron-css">${blockNavigationStyle}</style>`;
-            const scriptTag = `<script type="text/javascript" id="pdftron-js">${sendTextDataScript}</script>`;
-            // const scriptTag2 = `<script id='proxy-pdftron-js'>${onbeforeunloadScript}</script>`;
+            const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
+            const textScript = `<script type='text/javascript' id='pdftron-text-js'>${sendTextDataScript}</script>`;
+            const navigationScript = `<script type='text/javascript' id='pdftron-navigation-js'>${blockNavigationScript}</script>`;
 
-            const headIndex = body.indexOf("</head>");
+            const headIndex = body.indexOf('</head>');
             if (headIndex > 0) {
               if (!/pdftron-css/.test(body)) {
                 body = body.slice(0, headIndex) + styleTag + body.slice(headIndex);
               }
 
-              if (!/pdftron-js/.test(body)) {
-                body = body.slice(0, headIndex) + scriptTag + body.slice(headIndex);
-                // body = body.slice(0, headIndex) + scriptTag2 + body.slice(headIndex);
+              if (!/pdftron-text-js/.test(body)) {
+                body = body.slice(0, headIndex) + textScript + body.slice(headIndex);
+              }
+
+              if (!/pdftron-navigation-js/.test(body)) {
+                body = body.slice(0, headIndex) + navigationScript + body.slice(headIndex);
               }
             }
 
