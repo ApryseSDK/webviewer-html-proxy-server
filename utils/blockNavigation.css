@@ -17,11 +17,11 @@ input[type="search"] {
 }
 
 /* for google the voice icon */
-*:not(a):not(button):not(input)[role="button"]:active {
+div[role="button"]:active {
     pointer-events: none !important;
 }
 
 /* for google dropdown search */
-li:active {
+li[role="presentation"]:active {
     pointer-events: none !important;
 }
