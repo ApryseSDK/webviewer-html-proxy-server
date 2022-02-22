@@ -143,12 +143,6 @@ const getClientUrl = () => {
   return origin;
 }
 
-const onKeydownCB = (e) => {
-  if (e.key == 'Enter') {
-    e.preventDefault();
-  }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   const selectionData = getTextData(document.body);
   window.parent.postMessage({ selectionData }, getClientUrl());
