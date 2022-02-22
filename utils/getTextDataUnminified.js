@@ -180,7 +180,7 @@ const getClientUrl = () => {
   return origin;
 }
 
-const sendDataToHTML = () => {
+const sendDataToClient = () => {
   const selectionData = getTextData(document.body);
   const iframeHeight = getHeight();
   // console.log('iframeHeight', iframeHeight)
@@ -204,18 +204,18 @@ const debounceJS = (func, wait, leading) => {
       func.apply(null, args);
   }
 }
-const debounceSendDataWithLeading = debounceJS(sendDataToHTML, 500, true);
-const debounceSendDataNoLeading = debounceJS(sendDataToHTML, 50, false);
+const debounceSendDataWithLeading = debounceJS(sendDataToClient, 500, true);
+const debounceSendDataNoLeading = debounceJS(sendDataToClient, 50, false);
 
 window.addEventListener('message', e => {
   if (e.origin == getClientUrl() && e.data == 'loadTextData') {
     // console.log('send from loadTextData')
-    sendDataToHTML();
+    sendDataToClient();
   }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  sendDataToHTML();
+  sendDataToClient();
 
   const observer = new MutationObserver((m, o) => {
     console.log('------------MutationObserver---------')
