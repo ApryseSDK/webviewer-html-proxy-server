@@ -8,10 +8,6 @@ const getTextData = (body) => {
     return { struct, str, offsets, quads };
   }
 
-  const isInvalidNode = (node) => {
-    return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
-  }
-
   const traverseTextNode = (parentNode, struct, offsets, quads, str) => {
     const range = document.createRange();
     parentNode.childNodes.forEach(child => {
@@ -138,22 +134,113 @@ const getTextData = (body) => {
   return getSelectionData(body);
 }
 
+const isInvalidNode = (node) => {
+  return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
+}
+
+// const getLinks = (pageBody) => {
+//   const linksArray = [];
+
+//   const traverseLinkNode = (parentNode, linksArray) => {
+//     parentNode.childNodes.forEach(child => {
+//       if (isInvalidNode(child))
+//         return;
+//       if (child.tagName === 'A' && !!child.href) {
+//         const clientRect = child.getBoundingClientRect();
+//         linksArray.push({ clientRect, href: child.getAttribute('href') });
+//       } else {
+//         traverseLinkNode(child, linksArray);
+//       }
+//     });
+//     return linksArray;
+//   }
+
+//   return traverseLinkNode(pageBody, linksArray);
+// }
+
+const getHeight = () => {
+  let pageHeight = Math.min(Math.max(document.documentElement.clientHeight, document.documentElement.scrollHeight), Math.max(document.body.scrollHeight, document.body.clientHeight));
+
+  const findHighestNode = (nodesList) => {
+    for (let i = nodesList.length - 1; i >= 0; i--) {
+      if (nodesList[i].scrollHeight && nodesList[i].clientHeight) {
+        let elHeight = Math.max(nodesList[i].scrollHeight, nodesList[i].clientHeight);
+        pageHeight = Math.max(elHeight, pageHeight);
+      }
+      if (nodesList[i].childNodes.length)
+        findHighestNode(nodesList[i].childNodes);
+    }
+  }
+  findHighestNode(document.body.childNodes);
+  return pageHeight;
+}
+
 const getClientUrl = () => {
   const { origin } = new URL(document.referrer);
   return origin;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+const sendDataToHTML = () => {
   const selectionData = getTextData(document.body);
-  window.parent.postMessage({ selectionData }, getClientUrl());
-});
+  const iframeHeight = getHeight();
+  // console.log('iframeHeight', iframeHeight)
+  // const linkData = getLinks(document.body);
+  window.parent.postMessage({ selectionData, iframeHeight }, getClientUrl());
+}
+
+const debounceJS = (func, wait, leading) => {
+  let timeout = null;
+  return (...args) => {
+    let callNow = leading && !timeout;
+    clearTimeout(timeout);
+
+    timeout = setTimeout(() => {
+      timeout = null;
+      if (!leading) {
+        func.apply(null, args);
+      }
+    }, wait);
+    if (callNow)
+      func.apply(null, args);
+  }
+}
+const debounceSendDataWithLeading = debounceJS(sendDataToHTML, 500, true);
+const debounceSendDataNoLeading = debounceJS(sendDataToHTML, 50, false);
 
 window.addEventListener('message', e => {
   if (e.origin == getClientUrl() && e.data == 'loadTextData') {
-    const selectionData = getTextData(document.body);
-    window.parent.postMessage({ selectionData }, getClientUrl());
+    // console.log('send from loadTextData')
+    sendDataToHTML();
   }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  sendDataToHTML();
+
+  const observer = new MutationObserver((m, o) => {
+    console.log('------------MutationObserver---------')
+    debounceSendDataWithLeading();
+  });
+  observer.observe(document.body, {
+    attributes: true,
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+});
+
+window.addEventListener('load', () => {
+  // fix for https://www.mdlottery.com/about-us/legal-information/
+  // if always change html.height to initial, layout will break on google.com
+  if (document.documentElement.style.height == '100%') {
+    document.documentElement.style.height = 'initial';
+  }
+});
+
+document.addEventListener('transitionend', () => {
+  console.log('------------transitionend---------')
+  debounceSendDataNoLeading();
+})
 
 // NOTES:
 // https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
