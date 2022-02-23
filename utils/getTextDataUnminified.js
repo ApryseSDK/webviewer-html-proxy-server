@@ -158,7 +158,7 @@ const isInvalidNode = (node) => {
 //   return traverseLinkNode(pageBody, linksArray);
 // }
 
-const getHeight = () => {
+const getPageHeight = () => {
   let pageHeight = Math.min(Math.max(document.documentElement.clientHeight, document.documentElement.scrollHeight), Math.max(document.body.scrollHeight, document.body.clientHeight));
 
   const findHighestNode = (nodesList) => {
@@ -182,7 +182,7 @@ const getClientUrl = () => {
 
 const sendDataToClient = () => {
   const selectionData = getTextData(document.body);
-  const iframeHeight = getHeight();
+  const iframeHeight = getPageHeight();
   // console.log('iframeHeight', iframeHeight)
   // const linkData = getLinks(document.body);
   window.parent.postMessage({ selectionData, iframeHeight }, getClientUrl());
