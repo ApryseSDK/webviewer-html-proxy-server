@@ -159,20 +159,31 @@ const isInvalidNode = (node) => {
 // }
 
 const getPageHeight = () => {
-  let pageHeight = Math.min(Math.max(document.documentElement.clientHeight, document.documentElement.scrollHeight), Math.max(document.body.scrollHeight, document.body.clientHeight));
+  // let pageHeight = Math.min(Math.max(document.documentElement.clientHeight, document.documentElement.scrollHeight), Math.max(document.body.scrollHeight, document.body.clientHeight));
 
-  const findHighestNode = (nodesList) => {
-    for (let i = nodesList.length - 1; i >= 0; i--) {
-      if (nodesList[i].scrollHeight && nodesList[i].clientHeight) {
-        let elHeight = Math.max(nodesList[i].scrollHeight, nodesList[i].clientHeight);
-        pageHeight = Math.max(elHeight, pageHeight);
-      }
-      if (nodesList[i].childNodes.length)
-        findHighestNode(nodesList[i].childNodes);
-    }
-  }
-  findHighestNode(document.body.childNodes);
-  return pageHeight;
+  // const findHighestNode = (nodesList) => {
+  //   for (let i = nodesList.length - 1; i >= 0; i--) {
+  //     if (nodesList[i].scrollHeight && nodesList[i].clientHeight) {
+  //       let elHeight = Math.max(nodesList[i].scrollHeight, nodesList[i].clientHeight);
+  //       pageHeight = Math.max(elHeight, pageHeight);
+  //     }
+  //     if (nodesList[i].childNodes.length)
+  //       findHighestNode(nodesList[i].childNodes);
+  //   }
+  // }
+  // findHighestNode(document.body.childNodes);
+  // return pageHeight;
+
+  let sum = 0;
+  document.body.childNodes.forEach(el => {
+    // some elements have undefined clientHeight
+    // favor scrollHeight since clientHeight does not include padding
+    // some hidden/collapsible elements have clientHeight 0 but positive scrollHeight
+    if (!isNaN(el.clientHeight))
+      sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
+  });
+  return sum;
+
 }
 
 const getClientUrl = () => {
@@ -204,12 +215,11 @@ const debounceJS = (func, wait, leading) => {
       func.apply(null, args);
   }
 }
-const debounceSendDataWithLeading = debounceJS(sendDataToClient, 500, true);
+const debounceSendDataWithLeading = debounceJS(sendDataToClient, 500, false);
 const debounceSendDataNoLeading = debounceJS(sendDataToClient, 50, false);
 
 window.addEventListener('message', e => {
   if (e.origin == getClientUrl() && e.data == 'loadTextData') {
-    // console.log('send from loadTextData')
     sendDataToClient();
   }
 });
@@ -218,7 +228,6 @@ document.addEventListener('DOMContentLoaded', () => {
   sendDataToClient();
 
   const observer = new MutationObserver((m, o) => {
-    console.log('------------MutationObserver---------')
     debounceSendDataWithLeading();
   });
   observer.observe(document.body, {
@@ -229,16 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-window.addEventListener('load', () => {
-  // fix for https://www.mdlottery.com/about-us/legal-information/
-  // if always change html.height to initial, layout will break on google.com
-  if (document.documentElement.style.height == '100%') {
-    document.documentElement.style.height = 'initial';
-  }
-});
-
 document.addEventListener('transitionend', () => {
-  console.log('------------transitionend---------')
   debounceSendDataNoLeading();
 })
 

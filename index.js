@@ -191,8 +191,8 @@ function createServer({
 
           serverResponse.on('end', function () {
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
-            const textScript = `<script type='text/javascript' id='pdftron-text-js'>${sendTextDataScript}</script>`;
-            const navigationScript = `<script type='text/javascript' id='pdftron-navigation-js'>${blockNavigationScript}</script>`;
+            const textScript = `<script type='text/javascript' id='pdftron-js'>${sendTextDataScript}</script>`;
+            const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
 
             const headIndex = body.indexOf('</head>');
             if (headIndex > 0) {
@@ -201,11 +201,7 @@ function createServer({
               }
 
               if (!/pdftron-text-js/.test(body)) {
-                body = body.slice(0, headIndex) + textScript + body.slice(headIndex);
-              }
-
-              if (!/pdftron-navigation-js/.test(body)) {
-                body = body.slice(0, headIndex) + navigationScript + body.slice(headIndex);
+                body = body.slice(0, headIndex) + textScript + navigationScript + body.slice(headIndex);
               }
             }
 
