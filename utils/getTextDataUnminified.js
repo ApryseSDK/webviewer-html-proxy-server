@@ -8,10 +8,6 @@ const getTextData = (body) => {
     return { struct, str, offsets, quads };
   }
 
-  const isInvalidNode = (node) => {
-    return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
-  }
-
   const traverseTextNode = (parentNode, struct, offsets, quads, str) => {
     const range = document.createRange();
     parentNode.childNodes.forEach(child => {
@@ -138,22 +134,113 @@ const getTextData = (body) => {
   return getSelectionData(body);
 }
 
+const isInvalidNode = (node) => {
+  return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
+}
+
+// const getLinks = (pageBody) => {
+//   const linksArray = [];
+
+//   const traverseLinkNode = (parentNode, linksArray) => {
+//     parentNode.childNodes.forEach(child => {
+//       if (isInvalidNode(child))
+//         return;
+//       if (child.tagName === 'A' && !!child.href) {
+//         const clientRect = child.getBoundingClientRect();
+//         linksArray.push({ clientRect, href: child.getAttribute('href') });
+//       } else {
+//         traverseLinkNode(child, linksArray);
+//       }
+//     });
+//     return linksArray;
+//   }
+
+//   return traverseLinkNode(pageBody, linksArray);
+// }
+
+const getPageHeight = () => {
+  // let pageHeight = Math.min(Math.max(document.documentElement.clientHeight, document.documentElement.scrollHeight), Math.max(document.body.scrollHeight, document.body.clientHeight));
+
+  // const findHighestNode = (nodesList) => {
+  //   for (let i = nodesList.length - 1; i >= 0; i--) {
+  //     if (nodesList[i].scrollHeight && nodesList[i].clientHeight) {
+  //       let elHeight = Math.max(nodesList[i].scrollHeight, nodesList[i].clientHeight);
+  //       pageHeight = Math.max(elHeight, pageHeight);
+  //     }
+  //     if (nodesList[i].childNodes.length)
+  //       findHighestNode(nodesList[i].childNodes);
+  //   }
+  // }
+  // findHighestNode(document.body.childNodes);
+  // return pageHeight;
+
+  let sum = 0;
+  document.body.childNodes.forEach(el => {
+    // some elements have undefined clientHeight
+    // favor scrollHeight since clientHeight does not include padding
+    // some hidden/collapsible elements have clientHeight 0 but positive scrollHeight
+    if (!isNaN(el.clientHeight))
+      sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
+  });
+  return sum;
+
+}
+
 const getClientUrl = () => {
   const { origin } = new URL(document.referrer);
   return origin;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+const sendDataToClient = () => {
   const selectionData = getTextData(document.body);
-  window.parent.postMessage({ selectionData }, getClientUrl());
-});
+  const iframeHeight = getPageHeight();
+  // console.log('iframeHeight', iframeHeight)
+  // const linkData = getLinks(document.body);
+  window.parent.postMessage({ selectionData, iframeHeight }, getClientUrl());
+}
+
+const debounceJS = (func, wait, leading) => {
+  let timeout = null;
+  return (...args) => {
+    let callNow = leading && !timeout;
+    clearTimeout(timeout);
+
+    timeout = setTimeout(() => {
+      timeout = null;
+      if (!leading) {
+        func.apply(null, args);
+      }
+    }, wait);
+    if (callNow)
+      func.apply(null, args);
+  }
+}
+const debounceSendDataWithLeading = debounceJS(sendDataToClient, 500, false);
+const debounceSendDataNoLeading = debounceJS(sendDataToClient, 50, false);
 
 window.addEventListener('message', e => {
   if (e.origin == getClientUrl() && e.data == 'loadTextData') {
-    const selectionData = getTextData(document.body);
-    window.parent.postMessage({ selectionData }, getClientUrl());
+    sendDataToClient();
   }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  sendDataToClient();
+
+  const observer = new MutationObserver((m, o) => {
+    debounceSendDataWithLeading();
+  });
+  observer.observe(document.body, {
+    attributes: true,
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+});
+
+document.addEventListener('transitionend', () => {
+  debounceSendDataNoLeading();
+})
 
 // NOTES:
 // https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage

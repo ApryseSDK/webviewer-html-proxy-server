@@ -16,8 +16,8 @@ input[type="search"] {
     pointer-events: none !important;
 }
 
-/* for google the voice icon */
-div[role="button"]:active {
+/* for google voice icon and virginia lottery collapsible divs */
+div[role="button"]:not([aria-expanded]):active {
     pointer-events: none !important;
 }
 
