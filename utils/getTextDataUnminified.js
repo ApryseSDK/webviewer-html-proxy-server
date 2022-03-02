@@ -138,42 +138,7 @@ const isInvalidNode = (node) => {
   return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
 }
 
-// const getLinks = (pageBody) => {
-//   const linksArray = [];
-
-//   const traverseLinkNode = (parentNode, linksArray) => {
-//     parentNode.childNodes.forEach(child => {
-//       if (isInvalidNode(child))
-//         return;
-//       if (child.tagName === 'A' && !!child.href) {
-//         const clientRect = child.getBoundingClientRect();
-//         linksArray.push({ clientRect, href: child.getAttribute('href') });
-//       } else {
-//         traverseLinkNode(child, linksArray);
-//       }
-//     });
-//     return linksArray;
-//   }
-
-//   return traverseLinkNode(pageBody, linksArray);
-// }
-
 const getPageHeight = () => {
-  // let pageHeight = Math.min(Math.max(document.documentElement.clientHeight, document.documentElement.scrollHeight), Math.max(document.body.scrollHeight, document.body.clientHeight));
-
-  // const findHighestNode = (nodesList) => {
-  //   for (let i = nodesList.length - 1; i >= 0; i--) {
-  //     if (nodesList[i].scrollHeight && nodesList[i].clientHeight) {
-  //       let elHeight = Math.max(nodesList[i].scrollHeight, nodesList[i].clientHeight);
-  //       pageHeight = Math.max(elHeight, pageHeight);
-  //     }
-  //     if (nodesList[i].childNodes.length)
-  //       findHighestNode(nodesList[i].childNodes);
-  //   }
-  // }
-  // findHighestNode(document.body.childNodes);
-  // return pageHeight;
-
   let sum = 0;
   document.body.childNodes.forEach(el => {
     // some elements have undefined clientHeight
@@ -194,8 +159,6 @@ const getClientUrl = () => {
 const sendDataToClient = () => {
   const selectionData = getTextData(document.body);
   const iframeHeight = getPageHeight();
-  // console.log('iframeHeight', iframeHeight)
-  // const linkData = getLinks(document.body);
   window.parent.postMessage({ selectionData, iframeHeight }, getClientUrl());
 }
 
@@ -242,10 +205,5 @@ document.addEventListener('transitionend', () => {
   debounceSendDataNoLeading();
 })
 
-// NOTES:
-// https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
-// targetWindow to call postMessage: A reference to the window that will receive the message, basically don't call it on the current window
-// window.parent returns the parent frame, in this case WV iframe
-// window.top returns the outermost frame, in this case the host page
-// e.source from eventListener "message" is, surprisingly not WV iframe but the host page, window.top, if console.log(e.source == window.top) returns true and (e.source == window.parent) returns false
-// we should use window.parent.postMessage() instead of e.source.postMessage() to communicate back to WV-HTML. This way we can addEventListener "message" on instance.iframeWindow instead of window
+// e.source from eventListener "message" is the host page, window.top
+// use window.parent.postMessage() instead of e.source.postMessage() to communicate back to WV

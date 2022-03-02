@@ -10,7 +10,6 @@ const path = require('path');
 
 const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, './utils/getTextDataUnminified.js'), 'utf8');
 const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigationUnminified.js'), 'utf8');
-const onbeforeunloadScript = fs.readFileSync(path.resolve(__dirname, './utils/onbeforeunload.js'), 'utf8');
 const blockNavigationStyle = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigation.css'), 'utf8');
 
 function createServer({
@@ -200,7 +199,7 @@ function createServer({
                 body = body.slice(0, headIndex) + styleTag + body.slice(headIndex);
               }
 
-              if (!/pdftron-text-js/.test(body)) {
+              if (!/pdftron-js/.test(body)) {
                 body = body.slice(0, headIndex) + textScript + navigationScript + body.slice(headIndex);
               }
             }
