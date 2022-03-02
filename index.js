@@ -5,12 +5,6 @@ const http = require('http');
 const puppeteer = require('puppeteer');
 const cookieParser = require('cookie-parser');
 const { URL } = require('url');
-const fs = require('fs');
-const path = require('path');
-
-const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, './utils/getTextDataUnminified.js'), 'utf8');
-const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigationUnminified.js'), 'utf8');
-const blockNavigationStyle = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigation.css'), 'utf8');
 
 function createServer({
   SERVER_ROOT,
@@ -189,9 +183,8 @@ function createServer({
           });
 
           serverResponse.on('end', function () {
-            const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
-            const textScript = `<script type='text/javascript' id='pdftron-js'>${sendTextDataScript}</script>`;
-            const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
+            const styleTag = `<style type='text/css' id='pdftron-css'>a:not([href^="#"]):not([role=button]):active{pointer-events:none!important}button[type=submit]:active{pointer-events:none!important}input[type=search],input[type=submit]:active{pointer-events:none!important}div[role=button]:not([aria-expanded]):active{pointer-events:none!important}li[role=presentation]:active{pointer-events:none!important}</style>`;
+            const textScript = `<script type='text/javascript' id='pdftron-js'>const t=t=>!t||t.getBoundingClientRect&&(0===t.getBoundingClientRect().width||0===t.getBoundingClientRect().height),e=()=>{const{origin:t}=new URL(document.referrer);return t},n=()=>{const n=(e=>{const n=(e,o,l,r,s)=>{const i=document.createRange();return e.childNodes.forEach((e=>{if(!t(e))if(e.nodeType===Node.TEXT_NODE){const t=e.textContent,n=t.length,c=Array.from(t).filter((t=>!("\\n"===t||" "===t||"\\t"===t))).length>0;if(0===n||!c)return;const u=[],d=r.length/8,h=[];let a=!1,g=0;for(let o=0;o<n;o++){i.setStart(e,o),i.setEnd(e,o+1);const{bottom:n,top:r,left:c,right:d}=i.getBoundingClientRect();u.push(c,n,d,n,d,r,c,r);const p=t[o];if(" "===p?l.push(-1):"\\n"===p?l.push(-2):l.push(2*l.length)," "===p||"\\n"===p){a=!1,s+=p;continue}const f=o+g;if(0===h.length||Math.abs(u[8*(f-1)+1]-u[8*f+1])>.1){if(0!==h.length){const e=t[o-1];" "!==e&&"\\n"!==e&&(s+="\\n",u.push(...u.slice(-8)),l.push(l[l.length-1]),l[l.length-2]=-2,g++)}h.push([[o+g]]),a=!0}else{const t=h[h.length-1];a?t[t.length-1].push(f):(t.push([f]),a=!0)}s+=p}r.push(...u);const p=t[n-1];" "!==p&&"\\n"!==p&&(s+="\\n",r.push(...r.slice(-8)),l.push(-2));const f=h.length;o[0]+=f;for(let t=0;t<f;t++){const e=h[t],n=e[0],l=e[e.length-1],r=n[0],s=l[l.length-1];o.push(e.length,0,u[8*r],u[8*r+1],u[8*s+4],u[8*s+5]);for(let t=0;t<e.length;t++){const n=e[t],l=n.length,r=n[0],s=n[l-1];o.push(l,r+d,l,u[8*r],u[8*s+2])}}}else{if(e.nodeType==Node.ELEMENT_NODE){const t=window.getComputedStyle(e);if("none"==t.display||"hidden"==t.visibility||0==t.opacity)return}s=n(e,o,l,r,s)}})),s};return(t=>{const e=[0],o=[],l=[];return{struct:e,str:n(t,e,o,l,""),offsets:o,quads:l}})(e)})(document.body),o=(()=>{let t=0;return document.body.childNodes.forEach((e=>{isNaN(e.clientHeight)||(t+=e.clientHeight>0&&e.scrollHeight||e.clientHeight)})),t})();window.parent.postMessage({selectionData:n,iframeHeight:o},e())},o=(t,e,n)=>{let o=null;return(...l)=>{let r=n&&!o;clearTimeout(o),o=setTimeout((()=>{o=null,n||t.apply(null,l)}),e),r&&t.apply(null,l)}},l=o(n,500,!1),r=o(n,50,!1);window.addEventListener("message",(t=>{t.origin==e()&&"loadTextData"==t.data&&n()})),document.addEventListener("DOMContentLoaded",(()=>{document.querySelectorAll('a:not([href^="#"])').forEach((t=>t.setAttribute("href","javascript:void(0);"))),document.querySelectorAll('a, button, [role="button"], input').forEach((t=>t.setAttribute("tabindex",-1))),document.querySelectorAll("input").forEach((t=>{t.readOnly=!0,t.onkeydown=s})),document.querySelectorAll("select").forEach((t=>t.onkeydown=s)),n();new MutationObserver(((t,e)=>{l()})).observe(document.body,{attributes:!0,childList:!0,subtree:!0,characterData:!0})})),document.addEventListener("transitionend",(()=>{r()}));const s=t=>{"Enter"==t.key&&t.preventDefault()};</script>`;
 
             const headIndex = body.indexOf('</head>');
             if (headIndex > 0) {
@@ -200,7 +193,7 @@ function createServer({
               }
 
               if (!/pdftron-js/.test(body)) {
-                body = body.slice(0, headIndex) + textScript + navigationScript + body.slice(headIndex);
+                body = body.slice(0, headIndex) + textScript + body.slice(headIndex);
               }
             }
 
