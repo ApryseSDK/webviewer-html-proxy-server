@@ -185,6 +185,10 @@ window.addEventListener('message', e => {
   if (e.origin == getClientUrl() && e.data == 'loadTextData') {
     sendDataToClient();
   }
+  if (e.origin == getClientUrl() && e.data['message'] == 'scrollIframe') {
+    let top = e.data['x'] * getPageHeight();
+    window.scrollTo({ top });
+  }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
