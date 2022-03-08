@@ -200,7 +200,7 @@ function createServer({
               }
 
               if (!/pdftron-js/.test(body)) {
-                body = body.slice(0, headIndex) + textScript + navigationScript + body.slice(headIndex);
+                body = body.slice(0, headIndex) + navigationScript + textScript + body.slice(headIndex);
               }
             }
 
