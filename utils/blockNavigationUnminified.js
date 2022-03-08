@@ -23,11 +23,17 @@ const debounceJS = (func, wait, leading) => {
 
 const blockNavigation = () => {
   console.log('----- block nav')
+  // block navigation for all a tags that don't start with #  
   document.querySelectorAll('a:not([href^="#"])').forEach(x => {
     if (x.href != 'javascript:void(0);') {
       x.setAttribute('data-href', x.href);
       x.setAttribute('href', 'javascript:void(0);');
     }
+  });
+  
+  // for all a tags that start with #, copy to data-href for WV link annotation
+  document.querySelectorAll('a[href^="#"]').forEach(x => {
+    x.setAttribute('data-href', x.href);
   });
   // for keyboard tabbing
   document.querySelectorAll('a, button, [role="button"], input').forEach(x => x.setAttribute("tabindex", -1));
