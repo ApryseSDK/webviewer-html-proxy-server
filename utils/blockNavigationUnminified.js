@@ -5,7 +5,7 @@ const onKeydownCB = (e) => {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('a:not([href^="#"])').forEach(x => x.setAttribute('href', 'javascript:void(0);'));
+  // document.querySelectorAll('a:not([href^="#"])').forEach(x => x.setAttribute('href', 'javascript:void(0);'));
   // for keyboard tabbing
   document.querySelectorAll('a, button, [role="button"], input').forEach(x => x.setAttribute("tabindex", -1));
 

@@ -138,6 +138,26 @@ const isInvalidNode = (node) => {
   return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
 }
 
+const getLinks = (pageBody) => {
+  const linksArray = [];
+
+  const traverseLinkNode = (parentNode, linksArray) => {
+    parentNode.childNodes.forEach(child => {
+      if (isInvalidNode(child))
+        return;
+      if (child.tagName === 'A' && !!child.href) {
+        const clientRect = child.getBoundingClientRect();
+        linksArray.push({ clientRect, href: child.getAttribute('data-href') });
+      } else {
+        traverseLinkNode(child, linksArray);
+      }
+    });
+    return linksArray;
+  }
+
+  return traverseLinkNode(pageBody, linksArray);
+}
+
 const getPageHeight = () => {
   let sum = 0;
   document.body.childNodes.forEach(el => {
@@ -158,8 +178,10 @@ const getClientUrl = () => {
 
 const sendDataToClient = () => {
   const selectionData = getTextData(document.body);
+  const linkData = getLinks(document.body);
   const iframeHeight = getPageHeight();
-  window.parent.postMessage({ selectionData, iframeHeight }, getClientUrl());
+  console.log('--- send data to HTML')
+  window.parent.postMessage({ selectionData, linkData, iframeHeight }, getClientUrl());
 }
 
 const debounceJS = (func, wait, leading) => {
