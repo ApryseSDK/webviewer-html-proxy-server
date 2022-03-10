@@ -22,18 +22,18 @@ const debounceJS = (func, wait, leading) => {
 }
 
 const blockNavigation = () => {
-  console.log('----- block nav')
   // block navigation for all a tags that don't start with #  
   document.querySelectorAll('a:not([href^="#"])').forEach(x => {
-    if (x.href != 'javascript:void(0);') {
-      x.setAttribute('data-href', x.href);
+    if (!!x.href && x.href != 'javascript:void(0);') {
+      // x.href returns absolute URL instead of relative URL
+      x.setAttribute('data-href', x.getAttribute('href'));
       x.setAttribute('href', 'javascript:void(0);');
     }
   });
   
   // for all a tags that start with #, copy to data-href for WV link annotation
   document.querySelectorAll('a[href^="#"]').forEach(x => {
-    x.setAttribute('data-href', x.href);
+    x.setAttribute('data-href', x.getAttribute('href'));
   });
   // for keyboard tabbing
   document.querySelectorAll('a, button, [role="button"], input').forEach(x => x.setAttribute("tabindex", -1));
@@ -57,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // nytimes has a delayed-appended pre-footer section
   const observer = new MutationObserver((m, o) => {
-    console.log('MutationObserver block nav')
     debounceBlockNavigation();
   });
   observer.observe(document.body, {

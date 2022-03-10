@@ -1,8 +1,13 @@
 /* 
     Block all a tags that don't start with # 
-    and don't have role="button"
+    and don't have role="button" and don't have class "button" or "Button"
 */
-a:not([href^="#"]):not([role="button"]):active {
+
+a[href]:not([href^="#"]):not([role="button"]):active {
+    pointer-events: none !important;
+}
+
+a:not([href]):not([role="button"]):not([class*="button"]):not([class*="Button"]):active {
     pointer-events: none !important;
 }
 
