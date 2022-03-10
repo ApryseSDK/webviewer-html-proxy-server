@@ -153,9 +153,6 @@ function createServer({
           'User-Agent': clientRequest.headers['user-agent'],
           'Referer': `${PATH}${pathname}`,
           'Accept-Encoding': 'identity', // for amazon to work
-          // 'Cross-Origin-Resource-Policy': 'cross-origin',
-          // 'Cross-Origin-Embedder-Policy': 'credentialless',
-          'Cache-Control': ['public, no-cache, no-store, must-revalidate'],
         }
       };
 
@@ -173,10 +170,8 @@ function createServer({
         serverResponse.headers['cross-origin-embedder-policy'] = 'credentialless';
         // serverResponse.headers['cross-origin-opener-policy'] = 'same-origin';
 
-        // if a url is blown up, make sure to reset cache-control
-        if (!!serverResponse.headers['cache-control'] && /max-age=[^0]/.test(String(serverResponse.headers['cache-control']))) {
-          serverResponse.headers['cache-control'] = 'max-age=0';
-        }
+        // reset cache-control for https://www.keytrudahcp.com
+        serverResponse.headers['cache-control'] = 'max-age=0, public, no-cache, no-store, must-revalidate';
         let body = '';
         // Send html content from the proxied url to the browser so that it can spawn new requests.
         if (String(serverResponse.headers['content-type']).indexOf('text/html') !== -1) {
