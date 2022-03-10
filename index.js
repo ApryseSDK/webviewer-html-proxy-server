@@ -74,13 +74,14 @@ function createServer({
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
       // ****** second check for puppeteer being able to goto url
+      const browser = await puppeteer.launch(puppeteerOptions);
+
       try {
-        const browser = await puppeteer.launch(puppeteerOptions);
         const page = await browser.newPage();
         // page.on('console', msg => console.log('PAGE LOG:', msg.text()));
         const pageHTTPResponse = await page.goto(url, {
           // use 'domcontentloaded' https://github.com/puppeteer/puppeteer/issues/1666
-          waitUntil: 'domcontentloaded',
+          waitUntil: 'load', // defaults to load
         });
         const validUrl = pageHTTPResponse.url();
 
@@ -90,21 +91,15 @@ function createServer({
           ***********************************************************************
         `);
 
-        if (validUrl !== url) {
-          await page.goto(`${validUrl}`, {
-            waitUntil: 'domcontentloaded', // 'networkidle0',
-          });
-        }
-
         // cookie will only be set when res is sent succesfully
         const oneHour = 1000 * 60 * 60;
         res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
         res.status(200).send({ validUrl });
-        await browser.close();
-
       } catch (err) {
         console.error('/pdftron-proxy', err);
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
+      } finally {
+        await browser.close();
       }
     }
   });
@@ -115,10 +110,9 @@ function createServer({
           ********************** DOWNLOAD: ${req.query.url}
     `);
     // check again here to avoid server being blown up, tested with saving github
+    const browser = await puppeteer.launch(puppeteerOptions);
     try {
-      const browser = await puppeteer.launch(puppeteerOptions);
       const page = await browser.newPage();
-      // await page.goto(`${PATH}?url=${req.query.url}`, {
       await page.goto(`${req.query.url}`, {
         waitUntil: 'domcontentloaded'
       });
@@ -132,6 +126,8 @@ function createServer({
     } catch (err) {
       console.error('/pdftron-download', err);
       res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
+    } finally {
+      await browser.close();
     }
   });
 
@@ -157,9 +153,6 @@ function createServer({
           'User-Agent': clientRequest.headers['user-agent'],
           'Referer': `${PATH}${pathname}`,
           'Accept-Encoding': 'identity', // for amazon to work
-          // 'Cross-Origin-Resource-Policy': 'cross-origin',
-          // 'Cross-Origin-Embedder-Policy': 'credentialless',
-          'Cache-Control': ['public, no-cache, no-store, must-revalidate'],
         }
       };
 
@@ -177,10 +170,8 @@ function createServer({
         serverResponse.headers['cross-origin-embedder-policy'] = 'credentialless';
         // serverResponse.headers['cross-origin-opener-policy'] = 'same-origin';
 
-        // if a url is blown up, make sure to reset cache-control
-        if (!!serverResponse.headers['cache-control'] && /max-age=[^0]/.test(String(serverResponse.headers['cache-control']))) {
-          serverResponse.headers['cache-control'] = 'max-age=0';
-        }
+        // reset cache-control for https://www.keytrudahcp.com
+        serverResponse.headers['cache-control'] = 'max-age=0, public, no-cache, no-store, must-revalidate';
         let body = '';
         // Send html content from the proxied url to the browser so that it can spawn new requests.
         if (String(serverResponse.headers['content-type']).indexOf('text/html') !== -1) {
