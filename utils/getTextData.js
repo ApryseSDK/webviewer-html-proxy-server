@@ -185,7 +185,6 @@ const sendDataToClient = () => {
   const selectionData = getTextData(document.body);
   const linkData = getLinks(document.body);
   const iframeHeight = getPageHeight();
-  console.log('--- send data to HTML')
   window.parent.postMessage({ selectionData, linkData, iframeHeight }, getClientUrl());
 }
 
