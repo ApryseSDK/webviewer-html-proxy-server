@@ -145,6 +145,11 @@ const getLinks = (pageBody) => {
     parentNode.childNodes.forEach(child => {
       if (isInvalidNode(child))
         return;
+      if (child.nodeType == Node.ELEMENT_NODE) {
+        const style = window.getComputedStyle(child);
+        if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == 0)
+          return;
+      }
       if (child.tagName === 'A' && !!child.getAttribute('data-href')) {
         const clientRect = child.getBoundingClientRect();
         linksArray.push({ clientRect, href: child.getAttribute('data-href') });
