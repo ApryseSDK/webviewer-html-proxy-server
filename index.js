@@ -82,7 +82,7 @@ function createServer({
         // page.on('console', msg => console.log('PAGE LOG:', msg.text()));
         const pageHTTPResponse = await page.goto(url, {
           // use 'domcontentloaded' https://github.com/puppeteer/puppeteer/issues/1666
-          waitUntil: 'load', // defaults to load
+          waitUntil: 'domcontentloaded', // defaults to load
         });
         const validUrl = pageHTTPResponse.url();
 
