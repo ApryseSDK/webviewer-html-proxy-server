@@ -1,18 +1,21 @@
 const getTextData = (body) => {
-  const getSelectionData = (pageBody) => {
-    const struct = [0];
-    const offsets = [];
-    const quads = [];
-    const str = traverseTextNode(pageBody, struct, offsets, quads, "");
-
-    return { struct, str, offsets, quads };
-  }
-
-  const traverseTextNode = (parentNode, struct, offsets, quads, str) => {
+  const traverseTextNode = (parentNode, struct, offsets, quads, str, linksArray) => {
     const range = document.createRange();
     parentNode.childNodes.forEach(child => {
       if (isInvalidNode(child))
         return;
+      if (child.nodeType == Node.ELEMENT_NODE) {
+        const style = window.getComputedStyle(child);
+        if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == 0) {
+          return;
+        }
+      }
+
+      if (child.tagName === 'A' && !!child.getAttribute('data-href')) {
+        const clientRect = child.getBoundingClientRect();
+        linksArray.push({ clientRect, href: child.getAttribute('data-href') });
+      }
+
       if (child.nodeType === Node.TEXT_NODE) {
         const cText = child.textContent;
         const cTextLength = cText.length;
@@ -119,48 +122,23 @@ const getTextData = (body) => {
           }
         }
       } else {
-        // https://stackoverflow.com/a/21696585
-        if (child.nodeType == Node.ELEMENT_NODE) {
-          const style = window.getComputedStyle(child);
-          if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == 0)
-            return;
-        }
-        str = traverseTextNode(child, struct, offsets, quads, str);
+        str = traverseTextNode(child, struct, offsets, quads, str, linksArray);
       }
     });
     return str;
   }
 
-  return getSelectionData(body);
+  const struct = [0];
+  const offsets = [];
+  const quads = [];
+  const linksArray = [];
+  const str = traverseTextNode(body, struct, offsets, quads, "", linksArray);
+
+  return { selectionData: { struct, str, offsets, quads }, linkData: linksArray };
 }
 
 const isInvalidNode = (node) => {
   return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
-}
-
-const getLinks = (pageBody) => {
-  const linksArray = [];
-
-  const traverseLinkNode = (parentNode, linksArray) => {
-    parentNode.childNodes.forEach(child => {
-      if (isInvalidNode(child))
-        return;
-      if (child.nodeType == Node.ELEMENT_NODE) {
-        const style = window.getComputedStyle(child);
-        if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == 0)
-          return;
-      }
-      if (child.tagName === 'A' && !!child.getAttribute('data-href')) {
-        const clientRect = child.getBoundingClientRect();
-        linksArray.push({ clientRect, href: child.getAttribute('data-href') });
-      } else {
-        traverseLinkNode(child, linksArray);
-      }
-    });
-    return linksArray;
-  }
-
-  return traverseLinkNode(pageBody, linksArray);
 }
 
 const getPageHeight = () => {
@@ -182,8 +160,7 @@ const getClientUrl = () => {
 }
 
 const sendDataToClient = () => {
-  const selectionData = getTextData(document.body);
-  const linkData = getLinks(document.body);
+  const { selectionData, linkData } = getTextData(document.body);
   const iframeHeight = getPageHeight();
   window.parent.postMessage({ selectionData, linkData, iframeHeight }, getClientUrl());
 }
