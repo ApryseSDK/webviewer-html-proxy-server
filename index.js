@@ -81,9 +81,22 @@ function createServer({
         // page.on('console', msg => console.log('PAGE LOG:', msg.text()));
         const pageHTTPResponse = await page.goto(url, {
           // use 'domcontentloaded' https://github.com/puppeteer/puppeteer/issues/1666
-          waitUntil: 'load', // defaults to load
+          waitUntil: 'domcontentloaded', // defaults to load
         });
         const validUrl = pageHTTPResponse.url();
+
+        // Get the "viewport" of the page, as reported by the page.
+        const pageDimensions = await page.evaluate(() => {
+          let sum = 0;
+          document.body.childNodes.forEach(el => {
+            if (!isNaN(el.clientHeight))
+              sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
+          });
+          return {
+            width: document.body.scrollWidth || document.body.clientWidth || 1440,
+            height: sum,
+          };
+        });
 
         console.log('\x1b[31m%s\x1b[0m', `
           ***********************************************************************
@@ -94,7 +107,7 @@ function createServer({
         // cookie will only be set when res is sent succesfully
         const oneHour = 1000 * 60 * 60;
         res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
-        res.status(200).send({ validUrl });
+        res.status(200).send({ validUrl, pageDimensions });
       } catch (err) {
         console.error('/pdftron-proxy', err);
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
