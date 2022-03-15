@@ -3,6 +3,11 @@
     and don't have role="button" and don't have class "button" or "Button"
 */
 
+a[href]:not([href^="#"]):not([role="button"]),
+a[href]:not([href^="#"]):not([role="button"]) * {
+    cursor: default;
+}
+
 a[href]:not([href^="#"]):not([role="button"]):active {
     pointer-events: none !important;
 }
