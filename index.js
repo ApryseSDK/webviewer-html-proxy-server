@@ -122,7 +122,6 @@ function createServer({
       // buffer is sent as an response then client side consumes this to create a PDF
       // if send as a buffer can't convert that to PDF on client
       res.send(buffer);
-      await browser.close();
     } catch (err) {
       console.error('/pdftron-download', err);
       res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
