@@ -112,7 +112,7 @@ function createServer({
         console.error('/pdftron-proxy', err);
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
       } finally {
-        await browser.close();
+        browser.close();
       }
     }
   });
@@ -139,7 +139,7 @@ function createServer({
       console.error('/pdftron-download', err);
       res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
     } finally {
-      await browser.close();
+      browser.close();
     }
   });
 
