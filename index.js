@@ -8,8 +8,9 @@ const { URL } = require('url');
 const fs = require('fs');
 const path = require('path');
 
-const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, './utils/getTextDataUnminified.js'), 'utf8');
-const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigationUnminified.js'), 'utf8');
+const debounceJS = fs.readFileSync(path.resolve(__dirname, './utils/debounceJS.js'), 'utf8');
+const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, './utils/getTextData.js'), 'utf8');
+const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigation.js'), 'utf8');
 const blockNavigationStyle = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigation.css'), 'utf8');
 
 function createServer({
@@ -193,8 +194,9 @@ function createServer({
 
           serverResponse.on('end', function () {
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
-            const textScript = `<script type='text/javascript' id='pdftron-js'>${sendTextDataScript}</script>`;
+            const debounceScript = `<script type='text/javascript' id='pdftron-js'>${debounceJS}</script>`;
             const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
+            const textScript = `<script type='text/javascript'>${sendTextDataScript}</script>`;
 
             const headIndex = body.indexOf('</head>');
             if (headIndex > 0) {
@@ -203,7 +205,8 @@ function createServer({
               }
 
               if (!/pdftron-js/.test(body)) {
-                body = body.slice(0, headIndex) + textScript + navigationScript + body.slice(headIndex);
+                // order: debounce first, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
+                body = body.slice(0, headIndex) + debounceScript + navigationScript + textScript + body.slice(headIndex);
               }
             }
 
