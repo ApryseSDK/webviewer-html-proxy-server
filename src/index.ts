@@ -1,25 +1,69 @@
-const express = require('express');
-const cors = require('cors');
-const https = require('https');
-const http = require('http');
-const puppeteer = require('puppeteer');
-const cookieParser = require('cookie-parser');
-const { URL } = require('url');
-const fs = require('fs');
-const path = require('path');
+import express from 'express';
+import cors from 'cors';
+import https from 'https';
+import http from 'http';
+import puppeteer, { BrowserOptions, ChromeArgOptions, LaunchOptions, Product } from 'puppeteer';
+import cookieParser from 'cookie-parser';
+import { URL } from 'url';
+import fs from 'fs';
+import path from 'path';
 
-const debounceJS = fs.readFileSync(path.resolve(__dirname, './utils/debounceJS.js'), 'utf8');
-const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, './utils/getTextData.js'), 'utf8');
-const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigation.js'), 'utf8');
-const blockNavigationStyle = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigation.css'), 'utf8');
+/**
+ * https://expressjs.com/en/resources/middleware/cors.html
+ */
 
-function createServer({
-  SERVER_ROOT,
-  PORT,
-  CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true },
-  COOKIE_SETTING = {}
-}) {
-  console.log('createServer', SERVER_ROOT, PORT);
+/**
+ * https://expressjs.com/en/api.html#res.cookie
+ */
+
+export type ServerConfigurationOptions = {
+  SERVER_ROOT: string;
+  PORT: number | string;
+  CORS_OPTIONS?: {
+    origin?: boolean | string | string[] | (() => void);
+    methods?: string | string[];
+    allowedHeaders?: string | string[];
+    credentials?: boolean;
+    maxAge?: number;
+    preflightContinue?: boolean;
+    optionsSuccessStatus?: number;
+  }
+  COOKIE_SETTING?: {
+    domain?: string;
+    encode?: () => void;
+    expires?: Date;
+    httpOnly?: boolean;
+    maxAge?: number;
+    path?: string;
+    secure?: boolean;
+    signed?: boolean;
+    sameSite?: boolean | string;
+  }
+}
+
+export type PuppeteerOptions = LaunchOptions & ChromeArgOptions & BrowserOptions & {
+  product?: Product;
+  extraPrefsFirefox?: Record<string, unknown>;
+}
+
+const debounceJS = fs.readFileSync(path.resolve(__dirname, '../src/utils/debounceJS.js'), 'utf8');
+const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, '../src/utils/getTextData.js'), 'utf8');
+const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, '../src/utils/blockNavigation.js'), 'utf8');
+const blockNavigationStyle = fs.readFileSync(path.resolve(__dirname, '../src/utils/blockNavigation.css'), 'utf8');
+
+const defaultOptions: ServerConfigurationOptions = {
+  SERVER_ROOT: 'http://localhost',
+  PORT: 3001,
+  CORS_OPTIONS: { origin: `http://localhost:3000`, credentials: true },
+  COOKIE_SETTING: { sameSite: 'none', secure: true }
+}
+
+function createServer(options: ServerConfigurationOptions) {
+  if (!options) {
+    options = defaultOptions;
+  }
+  const { SERVER_ROOT, PORT, CORS_OPTIONS, COOKIE_SETTING } = options;
+  console.log('createServer', SERVER_ROOT, PORT, CORS_OPTIONS, COOKIE_SETTING);
 
   const app = express();
   app.use(cookieParser());
@@ -57,10 +101,10 @@ function createServer({
     }
   }
 
-  const isUrlAbsolute = (url) => (url.indexOf('://') > 0 || url.indexOf('//') === 0);
+  const isUrlAbsolute = (url: string) => (url.indexOf('://') > 0 || url.indexOf('//') === 0);
 
   const defaultViewport = { width: 1440, height: 770 };
-  const puppeteerOptions = {
+  const puppeteerOptions: PuppeteerOptions = {
     product: 'chrome',
     defaultViewport,
     headless: true,
@@ -69,7 +113,7 @@ function createServer({
 
   app.get('/pdftron-proxy', async (req, res) => {
     // this is the url retrieved from the input
-    const url = req.query.url;
+    const url: string = req.query.url;
     // ****** first check for human readable URL with simple regex
     if (!isValidURL(url)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
@@ -89,7 +133,7 @@ function createServer({
         // Get the "viewport" of the page, as reported by the page.
         const pageDimensions = await page.evaluate(() => {
           let sum = 0;
-          document.body.childNodes.forEach(el => {
+          document.body.childNodes.forEach((el: Element) => {
             if (!isNaN(el.clientHeight))
               sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
           });
@@ -269,4 +313,4 @@ function createServer({
   console.log(`Running on ${PATH}`);
 };
 
-exports.createServer = createServer;
+export { createServer };
