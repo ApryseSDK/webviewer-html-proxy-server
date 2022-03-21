@@ -2,8 +2,6 @@ const path = require('path');
 const nodeExternals = require('webpack-node-externals');
 
 module.exports = {
-  // devtool: 'inline-source-map',
-  // devtool: 'cheap-module-source-map', // works better than inline. Breakpoints actually work consistently.
   entry: './src/index.ts',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -53,18 +51,11 @@ module.exports = {
           }
         }
       },
+      // https://webpack.js.org/guides/asset-modules/ no additional loader needed
       {
-        test: /\.js$/,
+        test: [/\.js$/, /\.css$/],
         include: /\/src\/utils/,
-        // use: 'raw-loader',
         type: 'asset/source',
-      },
-      {
-        test: /\.css$/,
-        include: /\/src\/utils/,
-        use: 'css-loader',
-        // // use: [MiniCssExtractPlugin.loader, "css-loader"],
-        // use: [{ loader: MiniCssExtractPlugin.loader, options: { esModule: true } }, "css-loader"],
       },
     ]
   }

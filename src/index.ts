@@ -5,7 +5,6 @@ import http from 'http';
 import puppeteer, { BrowserOptions, ChromeArgOptions, LaunchOptions, Product } from 'puppeteer';
 import cookieParser from 'cookie-parser';
 import { URL } from 'url';
-import { minify, MinifyOutput } from 'terser';
 
 // @ts-ignore
 import debounceJS from './utils/debounceJS.js';
@@ -229,11 +228,11 @@ function createServer({
         let body = '';
         // Send html content from the proxied url to the browser so that it can spawn new requests.
         if (String(serverResponse.headers['content-type']).indexOf('text/html') !== -1) {
-          serverResponse.on('data', function (chunk) {
+          serverResponse.on('data', (chunk) => {
             body += chunk;
           });
 
-          serverResponse.on('end', function () {
+          serverResponse.on('end', () => {
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
             const debounceScript = `<script type='text/javascript' id='pdftron-js'>${debounceJS}</script>`;
             const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
