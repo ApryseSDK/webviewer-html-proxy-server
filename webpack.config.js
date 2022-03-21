@@ -42,8 +42,7 @@ module.exports = {
       },
       {
         test: /\.m?js$/,
-        // test: /\.js$/,
-        exclude: /node_modules/,
+        exclude: [/node_modules/, /\/src\/utils/],
         use: {
           loader: "babel-loader",
           options: {
@@ -53,6 +52,19 @@ module.exports = {
             ]
           }
         }
+      },
+      {
+        test: /\.js$/,
+        include: /\/src\/utils/,
+        // use: 'raw-loader',
+        type: 'asset/source',
+      },
+      {
+        test: /\.css$/,
+        include: /\/src\/utils/,
+        use: 'css-loader',
+        // // use: [MiniCssExtractPlugin.loader, "css-loader"],
+        // use: [{ loader: MiniCssExtractPlugin.loader, options: { esModule: true } }, "css-loader"],
       },
     ]
   }

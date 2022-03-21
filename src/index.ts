@@ -5,8 +5,16 @@ import http from 'http';
 import puppeteer, { BrowserOptions, ChromeArgOptions, LaunchOptions, Product } from 'puppeteer';
 import cookieParser from 'cookie-parser';
 import { URL } from 'url';
-import fs from 'fs';
-import path from 'path';
+import { minify, MinifyOutput } from 'terser';
+
+// @ts-ignore
+import debounceJS from './utils/debounceJS.js';
+// @ts-ignore
+import sendTextDataScript from './utils/getTextData.js';
+// @ts-ignore
+import blockNavigationScript from './utils/blockNavigation.js';
+// @ts-ignore
+import blockNavigationStyle from './utils/blockNavigation.css';
 
 /**
  * https://expressjs.com/en/resources/middleware/cors.html
@@ -44,18 +52,6 @@ export type ServerConfigurationOptions = {
 export type PuppeteerOptions = LaunchOptions & ChromeArgOptions & BrowserOptions & {
   product?: Product;
   extraPrefsFirefox?: Record<string, unknown>;
-}
-
-const debounceJS = fs.readFileSync(path.resolve(__dirname, '../src/utils/debounceJS.js'), 'utf8');
-const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, '../src/utils/getTextData.js'), 'utf8');
-const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, '../src/utils/blockNavigation.js'), 'utf8');
-const blockNavigationStyle = fs.readFileSync(path.resolve(__dirname, '../src/utils/blockNavigation.css'), 'utf8');
-
-const defaultOptions: ServerConfigurationOptions = {
-  SERVER_ROOT: 'http://localhost',
-  PORT: 3001,
-  CORS_OPTIONS: { origin: `http://localhost:3000`, credentials: true },
-  COOKIE_SETTING: { sameSite: 'none', secure: true }
 }
 
 function createServer({
