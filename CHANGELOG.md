@@ -1,4 +1,4 @@
-## 1.6.0 ()
+## 1.6.0 (2022-03-21)
 
 - Added a link data retrieval function in the injected script
 
