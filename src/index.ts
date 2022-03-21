@@ -58,11 +58,12 @@ const defaultOptions: ServerConfigurationOptions = {
   COOKIE_SETTING: { sameSite: 'none', secure: true }
 }
 
-function createServer(options: ServerConfigurationOptions) {
-  if (!options) {
-    options = defaultOptions;
-  }
-  const { SERVER_ROOT, PORT, CORS_OPTIONS, COOKIE_SETTING } = options;
+function createServer({
+  SERVER_ROOT,
+  PORT,
+  CORS_OPTIONS = { origin: `http://localhost:3000`, credentials: true },
+  COOKIE_SETTING = { sameSite: 'none', secure: true }
+}: ServerConfigurationOptions) {
   console.log('createServer', SERVER_ROOT, PORT, CORS_OPTIONS, COOKIE_SETTING);
 
   const app = express();

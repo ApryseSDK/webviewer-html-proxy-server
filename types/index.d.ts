@@ -33,5 +33,5 @@ export declare type PuppeteerOptions = LaunchOptions & ChromeArgOptions & Browse
     product?: Product;
     extraPrefsFirefox?: Record<string, unknown>;
 };
-declare function createServer(options: ServerConfigurationOptions): void;
+declare function createServer({ SERVER_ROOT, PORT, CORS_OPTIONS, COOKIE_SETTING }: ServerConfigurationOptions): void;
 export { createServer };
