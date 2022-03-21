@@ -5,13 +5,6 @@ const http = require('http');
 const puppeteer = require('puppeteer');
 const cookieParser = require('cookie-parser');
 const { URL } = require('url');
-const fs = require('fs');
-const path = require('path');
-
-const debounceJS = fs.readFileSync(path.resolve(__dirname, './utils/debounceJS.js'), 'utf8');
-const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, './utils/getTextData.js'), 'utf8');
-const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigation.js'), 'utf8');
-const blockNavigationStyle = fs.readFileSync(path.resolve(__dirname, './utils/blockNavigation.css'), 'utf8');
 
 function createServer({
   SERVER_ROOT,
@@ -193,10 +186,9 @@ function createServer({
           });
 
           serverResponse.on('end', function () {
-            const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
-            const debounceScript = `<script type='text/javascript' id='pdftron-js'>${debounceJS}</script>`;
-            const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
-            const textScript = `<script type='text/javascript'>${sendTextDataScript}</script>`;
+            const styleTag = `<style type='text/css' id='pdftron-css'>a[href]:not([href^="#"]):not([role=button]),a[href]:not([href^="#"]):not([role=button]) *{cursor:default}a[href]:not([href^="#"]):not([role=button]):active{pointer-events:none!important}a:not([href]):not([role=button]):not([class*=button]):not([class*=Button]):active{pointer-events:none!important}button[type=submit]:active{pointer-events:none!important}input[type=search],input[type=submit]:active{pointer-events:none!important}div[role=button]:not([aria-expanded]):active{pointer-events:none!important}li[role=presentation]:active{pointer-events:none!important}</style>`;
+            const scriptTag = `<script type='text/javascript' id='pdftron-js'>const debounceJS=(l,e,u)=>{let n=null;return(...t)=>{let o=u&&!n;clearTimeout(n),n=setTimeout((()=>{n=null,u||l.apply(null,t)}),e),o&&l.apply(null,t)}};const onKeydownCB=e=>{"Enter"==e.key&&e.preventDefault()},blockNavigation=()=>{document.querySelectorAll('a:not([href^="#"])').forEach((e=>{e.href&&"javascript:void(0);"!=e.href&&(e.setAttribute("data-href",e.getAttribute("href")),e.setAttribute("href","javascript:void(0);"))})),document.querySelectorAll('a[href^="#"]').forEach((e=>{e.setAttribute("data-href",e.getAttribute("href"))})),document.querySelectorAll('a, button, [role="button"], input').forEach((e=>e.setAttribute("tabindex",-1))),document.querySelectorAll("input").forEach((e=>{e.readOnly||(e.readOnly=!0,e.onkeydown=onKeydownCB)})),document.querySelectorAll("select").forEach((e=>e.onkeydown=onKeydownCB))},debounceBlockNavigation=debounceJS(blockNavigation,1e3,!1);document.addEventListener("DOMContentLoaded",(()=>{blockNavigation();new MutationObserver(((e,t)=>{debounceBlockNavigation()})).observe(document.body,{attributes:!1,childList:!0,subtree:!0,characterData:!1})}));const t=t=>!t||t.getBoundingClientRect&&(0===t.getBoundingClientRect().width||0===t.getBoundingClientRect().height),e=()=>{const{origin:t}=new URL(document.referrer);return t},n=()=>{const{selectionData:n,linkData:o}=(e=>{const n=(e,o,i,s,c,h)=>{const l=document.createRange();return e.childNodes.forEach((e=>{if(!t(e)){if(e.nodeType==Node.ELEMENT_NODE){const t=window.getComputedStyle(e);if("none"==t.display||"hidden"==t.visibility||0==t.opacity)return}if("A"===e.tagName&&e.getAttribute("data-href")){const t=e.getBoundingClientRect();h.push({clientRect:t,href:e.getAttribute("data-href")})}if(e.nodeType===Node.TEXT_NODE){const t=e.textContent,n=t.length,h=Array.from(t).filter((t=>!("\\n"===t||" "===t||"\\t"===t))).length>0;if(0===n||!h)return;const r=[],a=s.length/8,d=[];let u=!1,g=0;for(let o=0;o<n;o++){l.setStart(e,o),l.setEnd(e,o+1);const{bottom:n,top:s,left:h,right:a}=l.getBoundingClientRect();r.push(h,n,a,n,a,s,h,s);const f=t[o];if(" "===f?i.push(-1):"\\n"===f?i.push(-2):i.push(2*i.length)," "===f||"\\n"===f){u=!1,c+=f;continue}const p=o+g;if(0===d.length||Math.abs(r[8*(p-1)+1]-r[8*p+1])>.1){if(0!==d.length){const e=t[o-1];" "!==e&&"\\n"!==e&&(c+="\\n",r.push(...r.slice(-8)),i.push(i[i.length-1]),i[i.length-2]=-2,g++)}d.push([[o+g]]),u=!0}else{const t=d[d.length-1];u?t[t.length-1].push(p):(t.push([p]),u=!0)}c+=f}s.push(...r);const f=t[n-1];" "!==f&&"\\n"!==f&&(c+="\\n",s.push(...s.slice(-8)),i.push(-2));const p=d.length;o[0]+=p;for(let t=0;t<p;t++){const e=d[t],n=e[0],i=e[e.length-1],s=n[0],c=i[i.length-1];o.push(e.length,0,r[8*s],r[8*s+1],r[8*c+4],r[8*c+5]);for(let t=0;t<e.length;t++){const n=e[t],i=n.length,s=n[0],c=n[i-1];o.push(i,s+a,i,r[8*s],r[8*c+2])}}}else c=n(e,o,i,s,c,h)}})),c},o=[0],i=[],s=[],c=[];return{selectionData:{struct:o,str:n(e,o,i,s,"",c),offsets:i,quads:s},linkData:c}})(document.body),i=(()=>{let t=0;return document.body.childNodes.forEach((e=>{isNaN(e.clientHeight)||(t+=e.clientHeight>0&&e.scrollHeight||e.clientHeight)})),t})();window.parent.postMessage({selectionData:n,linkData:o,iframeHeight:i},e())},o=debounceJS(n,500,!1),i=debounceJS(n,50,!1);window.addEventListener("message",(t=>{t.origin==e()&&"loadTextData"==t.data&&n()})),document.addEventListener("DOMContentLoaded",(()=>{n();new MutationObserver(((t,e)=>{o()})).observe(document.body,{attributes:!0,childList:!0,subtree:!0,characterData:!0})})),document.addEventListener("transitionend",(()=>{i()}));
+            </script>`;
 
             const headIndex = body.indexOf('</head>');
             if (headIndex > 0) {
@@ -206,7 +198,7 @@ function createServer({
 
               if (!/pdftron-js/.test(body)) {
                 // order: debounce first, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
-                body = body.slice(0, headIndex) + debounceScript + navigationScript + textScript + body.slice(headIndex);
+                body = body.slice(0, headIndex) + scriptTag + body.slice(headIndex);
               }
             }
 
