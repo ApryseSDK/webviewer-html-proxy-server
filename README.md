@@ -9,7 +9,7 @@ npm install @pdftron/webviewer-html-proxy-server
 
 ## How to use
 
-Call the `createServer` function in your server component and pass in an object that includes `SERVER_ROOT` and `PORT`. You can, optionally, pass in the third parameter, an object to configure CORS, the fourth parameter, an object to configure COOKIE and the fifth parameter, a boolean value to allow for unsecured HTTP websites to be proxied
+Call the `createServer` function in your server component and pass in an object that includes `SERVER_ROOT` and `PORT`. You can, optionally, pass in the third parameter, an object to configure CORS, the fourth parameter, an object to configure COOKIE and the fifth parameter, a boolean value to allow for unsecured HTTP websites to be proxied.
 
 See: https://expressjs.com/en/resources/middleware/cors.html and https://expressjs.com/en/api.html#res.cookie
 
