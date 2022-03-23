@@ -224,38 +224,8 @@ function createServer({
       }
 
       const serverRequest = parsedSSL.request(options, serverResponse => {
-        // This is the case of urls being redirected -> retrieve new headers['location'] and request again
-        if (serverResponse.statusCode >= 300 && serverResponse.statusCode <= 399) {
-          const location = serverResponse.headers['location'];
-          const parsedLocation = isUrlAbsolute(location) ? location : `https://${parsedHost}${location}`;
-
-          const {
-            parsedHost: newParsedHost,
-            parsedPort: newParsedPort,
-            parsedSSL: newParsedSSL,
-          } = getHostPortSSL(parsedLocation);
-
-          const newOptions = {
-            hostname: newParsedHost,
-            port: newParsedPort,
-            path: parsedLocation,
-            method: clientRequest.method,
-            insecureHTTPParser: true,
-            headers: {
-              'User-Agent': clientRequest.headers['user-agent'],
-              'Referer': `${PATH}${pathname}`,
-              'Accept-Encoding': 'identity',
-            }
-          };
-
-          const newServerRequest = newParsedSSL.request(newOptions, newResponse => {
-            callback(newResponse, clientResponse);
-          });
-          serverRequest.end();
-          newServerRequest.end();
-        } else {
-          callback(serverResponse, clientResponse);
-        }
+        // No need to check for redirected. Puppeteer will make sure final validURL exists 
+        callback(serverResponse, clientResponse);
       });
 
       serverRequest.end();

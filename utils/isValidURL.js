@@ -33,7 +33,6 @@ const isValidURL = (url, allowHTTPProxy) => {
 
   if (!allowHTTPProxy) {
     if (protocol === 'http:') {
-      console.log('http proxy')
       return false;
     }
   }
