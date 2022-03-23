@@ -1,70 +1,53 @@
-const express = require('express');
-const cors = require('cors');
-const https = require('https');
-const http = require('http');
-const puppeteer = require('puppeteer');
-const cookieParser = require('cookie-parser');
-const { URL } = require('url');
-const fs = require('fs');
-const path = require('path');
-const isValidURL = require('./utils/isValidURL.js');
+// import from node_modules
+import express from 'express';
+import cors from 'cors';
+import puppeteer from 'puppeteer';
+import cookieParser from 'cookie-parser';
+import type { ClientRequest, IncomingMessage } from 'http';
+import type { Request, Response } from 'express';
 
-const debounceJS = fs.readFileSync(path.resolve(__dirname, './inject-proxy/debounceJS.js'), 'utf8');
-const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, './inject-proxy/getTextData.js'), 'utf8');
-const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, './inject-proxy/blockNavigation.js'), 'utf8');
-const blockNavigationStyle = fs.readFileSync(path.resolve(__dirname, './inject-proxy/blockNavigation.css'), 'utf8');
+// import from data types
+import type { PageDimensions, ProxyRequestOptions, PuppeteerOptions, ServerConfigurationOptions, Viewport } from './utils/data.js';
+
+// import from utils
+import { isValidURL } from './utils/isValidURL';
+import { getHostPortSSL } from './utils/getHostPortSSL';
+
+// import raw from assets
+// @ts-ignore
+import debounceJS from './assets/debounceJS.js';
+// @ts-ignore
+import sendTextDataScript from './assets/getTextData.js';
+// @ts-ignore
+import blockNavigationScript from './assets/blockNavigation.js';
+// @ts-ignore
+import blockNavigationStyle from './assets/blockNavigation.css';
 
 function createServer({
   SERVER_ROOT,
   PORT,
-  CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true },
-  COOKIE_SETTING = {},
-  ALLOW_HTTP_PROXY = false,
-}) {
-  console.log('createServer', SERVER_ROOT, PORT);
+  CORS_OPTIONS = { origin: `http://localhost:3000`, credentials: true },
+  COOKIE_SETTING = { sameSite: 'none', secure: true },
+  ALLOW_HTTP_PROXY = false
+}: ServerConfigurationOptions) {
 
   const app = express();
   app.use(cookieParser());
   app.use(cors(CORS_OPTIONS));
 
-  const PATH = `${SERVER_ROOT}:${PORT}`;
+  const PATH: string = `${SERVER_ROOT}:${PORT}`;
 
-  const getHostPortSSL = (url) => {
-    const {
-      hostname,
-      pathname,
-      protocol
-    } = new URL(url);
-    const parsedHost = hostname;
-    let parsedPort;
-    let parsedSSL;
-    if (protocol == 'https:') {
-      parsedPort = 443;
-      parsedSSL = https;
-    }
-    if (protocol == 'http:') {
-      parsedPort = 80;
-      parsedSSL = http;
-    }
-    return {
-      parsedHost,
-      parsedPort,
-      parsedSSL,
-      pathname,
-    }
-  }
-
-  const defaultViewport = { width: 1440, height: 770 };
-  const puppeteerOptions = {
+  const defaultViewport: Viewport = { width: 1440, height: 770 };
+  const puppeteerOptions: PuppeteerOptions = {
     product: 'chrome',
     defaultViewport,
     headless: true,
     ignoreHTTPSErrors: true,
   };
 
-  app.get('/pdftron-proxy', async (req, res) => {
+  app.get('/pdftron-proxy', async (req: Request, res: Response) => {
     // this is the url retrieved from the input
-    const url = req.query.url;
+    const url: string = (req.query.url as string).toLowerCase();
     // ****** first check for human readable URL with simple regex
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
@@ -79,17 +62,17 @@ function createServer({
           // use 'domcontentloaded' https://github.com/puppeteer/puppeteer/issues/1666
           waitUntil: 'domcontentloaded', // defaults to load
         });
-        const validUrl = pageHTTPResponse.url();
+        const validUrl: string = pageHTTPResponse.url();
 
         // check again if puppeteer's validUrl will pass the test
-        if (validUrl !== url && !isValidURL(validUrl)) {
+        if (validUrl !== url && !isValidURL(validUrl, ALLOW_HTTP_PROXY)) {
           res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
         }
 
         // Get the "viewport" of the page, as reported by the page.
-        const pageDimensions = await page.evaluate(() => {
-          let sum = 0;
-          document.body.childNodes.forEach(el => {
+        const pageDimensions: PageDimensions = await page.evaluate(() => {
+          let sum: number = 0;
+          document.body.childNodes.forEach((el: Element) => {
             if (!isNaN(el.clientHeight))
               sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
           });
@@ -106,7 +89,7 @@ function createServer({
         `);
 
         // cookie will only be set when res is sent succesfully
-        const oneHour = 1000 * 60 * 60;
+        const oneHour: number = 1000 * 60 * 60;
         res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
         res.status(200).send({ validUrl, pageDimensions });
       } catch (err) {
@@ -119,7 +102,7 @@ function createServer({
   });
 
   // need to be placed before app.use('/');
-  app.get('/pdftron-download', async (req, res) => {
+  app.get('/pdftron-download', async (req: Request, res: Response) => {
     console.log('\x1b[31m%s\x1b[0m', `
           ********************** DOWNLOAD: ${req.query.url}
     `);
@@ -146,7 +129,7 @@ function createServer({
 
   // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
-  app.use('/', (clientRequest, clientResponse) => {
+  app.use('/', (clientRequest: Request, clientResponse: Response) => {
     const validUrl = clientRequest.cookies.pdftron_proxy_sid;
     if (validUrl) {
       const {
@@ -156,7 +139,7 @@ function createServer({
         pathname
       } = getHostPortSSL(validUrl);
 
-      const options = {
+      const options: ProxyRequestOptions = {
         hostname: parsedHost,
         port: parsedPort,
         path: clientRequest.url,
@@ -169,7 +152,7 @@ function createServer({
         }
       };
 
-      const callback = (serverResponse, clientResponse) => {
+      const callback = (serverResponse: IncomingMessage, clientResponse: Response) => {
         // Delete 'x-frame-options': 'SAMEORIGIN'
         // so that the page can be loaded in an iframe
         // https://stackoverflow.com/questions/36628420/nodejs-request-hpe-invalid-header-token
@@ -177,28 +160,26 @@ function createServer({
         delete serverResponse.headers['set-cookie'];
         delete serverResponse.headers['x-frame-options'];
         delete serverResponse.headers['content-security-policy'];
-        // serverResponse.headers['content-security-policy'] = `frame-ancestors 'self' ${CORS_OPTIONS.origin}`;
         serverResponse.headers['cross-origin-resource-policy'] = 'cross-origin';
         // 'require-corp' works fine on staging but doesn't on localhost: should use 'credentialless'
         serverResponse.headers['cross-origin-embedder-policy'] = 'credentialless';
-        // serverResponse.headers['cross-origin-opener-policy'] = 'same-origin';
 
         // reset cache-control for https://www.keytrudahcp.com
         serverResponse.headers['cache-control'] = 'max-age=0, public, no-cache, no-store, must-revalidate';
-        let body = '';
+        let body: string = '';
         // Send html content from the proxied url to the browser so that it can spawn new requests.
         if (String(serverResponse.headers['content-type']).indexOf('text/html') !== -1) {
-          serverResponse.on('data', function (chunk) {
+          serverResponse.on('data', (chunk: string) => {
             body += chunk;
           });
 
-          serverResponse.on('end', function () {
+          serverResponse.on('end', () => {
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
             const debounceScript = `<script type='text/javascript' id='pdftron-js'>${debounceJS}</script>`;
             const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
             const textScript = `<script type='text/javascript'>${sendTextDataScript}</script>`;
 
-            const headIndex = body.indexOf('</head>');
+            const headIndex: number = body.indexOf('</head>');
             if (headIndex > 0) {
               if (!/pdftron-css/.test(body)) {
                 body = body.slice(0, headIndex) + styleTag + body.slice(headIndex);
@@ -226,7 +207,7 @@ function createServer({
         }
       }
 
-      const serverRequest = parsedSSL.request(options, serverResponse => {
+      const serverRequest: ClientRequest = parsedSSL.request(options, serverResponse => {
         // No need to check for redirects. Puppeteer will make sure final validURL exists 
         callback(serverResponse, clientResponse);
       });
@@ -239,4 +220,4 @@ function createServer({
   console.log(`Running on ${PATH}`);
 };
 
-exports.createServer = createServer;
+export { createServer };

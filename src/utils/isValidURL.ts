@@ -1,4 +1,4 @@
-const BLOCKLIST = [
+const BLOCKLIST: string[] = [
   "127.",
   "0.",
   "10.",
@@ -27,10 +27,13 @@ const BLOCKLIST = [
   "::1",
 ]
 
-const isValidURL = (url, allowHTTPProxy) => {
-  let link = url.toLowerCase();
+const isValidURL = (url: string, allowHTTPProxy: boolean): boolean => {
+  if (url.length > 256) {
+    return false;
+  }
+
   try {
-    const { hostname, port, protocol } = new URL(link);
+    const { hostname, port, protocol } = new URL(url);
 
     if (!allowHTTPProxy) {
       if (protocol === 'http:') {
@@ -55,10 +58,10 @@ const isValidURL = (url, allowHTTPProxy) => {
     }
 
     // eslint-disable-next-line no-useless-escape
-    return /(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gi.test(link);
+    return /(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gi.test(url);
   } catch {
     return false;
   }
 }
 
-module.exports = isValidURL;
+export { isValidURL };
