@@ -5,12 +5,14 @@ const http = require('http');
 const puppeteer = require('puppeteer');
 const cookieParser = require('cookie-parser');
 const { URL } = require('url');
+const isValidURL = require('./utils/isValidURL.js');
 
 function createServer({
   SERVER_ROOT,
   PORT,
   CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true },
-  COOKIE_SETTING = {}
+  COOKIE_SETTING = {},
+  ALLOW_HTTP_PROXY = false,
 }) {
   console.log('createServer', SERVER_ROOT, PORT);
 
@@ -19,11 +21,6 @@ function createServer({
   app.use(cors(CORS_OPTIONS));
 
   const PATH = `${SERVER_ROOT}:${PORT}`;
-
-  const isValidURL = (url) => {
-    // eslint-disable-next-line no-useless-escape
-    return /(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gi.test(url);
-  }
 
   const getHostPortSSL = (url) => {
     const {
@@ -50,8 +47,6 @@ function createServer({
     }
   }
 
-  const isUrlAbsolute = (url) => (url.indexOf('://') > 0 || url.indexOf('//') === 0);
-
   const defaultViewport = { width: 1440, height: 770 };
   const puppeteerOptions = {
     product: 'chrome',
@@ -64,7 +59,7 @@ function createServer({
     // this is the url retrieved from the input
     const url = req.query.url;
     // ****** first check for human readable URL with simple regex
-    if (!isValidURL(url)) {
+    if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
       // ****** second check for puppeteer being able to goto url
@@ -78,6 +73,11 @@ function createServer({
           waitUntil: 'domcontentloaded', // defaults to load
         });
         const validUrl = pageHTTPResponse.url();
+
+        // check again if puppeteer's validUrl will pass the test
+        if (validUrl !== url && !isValidURL(validUrl)) {
+          res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
+        }
 
         // Get the "viewport" of the page, as reported by the page.
         const pageDimensions = await page.evaluate(() => {
@@ -219,38 +219,8 @@ function createServer({
       }
 
       const serverRequest = parsedSSL.request(options, serverResponse => {
-        // This is the case of urls being redirected -> retrieve new headers['location'] and request again
-        if (serverResponse.statusCode >= 300 && serverResponse.statusCode <= 399) {
-          const location = serverResponse.headers['location'];
-          const parsedLocation = isUrlAbsolute(location) ? location : `https://${parsedHost}${location}`;
-
-          const {
-            parsedHost: newParsedHost,
-            parsedPort: newParsedPort,
-            parsedSSL: newParsedSSL,
-          } = getHostPortSSL(parsedLocation);
-
-          const newOptions = {
-            hostname: newParsedHost,
-            port: newParsedPort,
-            path: parsedLocation,
-            method: clientRequest.method,
-            insecureHTTPParser: true,
-            headers: {
-              'User-Agent': clientRequest.headers['user-agent'],
-              'Referer': `${PATH}${pathname}`,
-              'Accept-Encoding': 'identity',
-            }
-          };
-
-          const newServerRequest = newParsedSSL.request(newOptions, newResponse => {
-            callback(newResponse, clientResponse);
-          });
-          serverRequest.end();
-          newServerRequest.end();
-        } else {
-          callback(serverResponse, clientResponse);
-        }
+        // No need to check for redirects. Puppeteer will make sure final validURL exists 
+        callback(serverResponse, clientResponse);
       });
 
       serverRequest.end();
