@@ -54,8 +54,6 @@ function createServer({
     }
   }
 
-  const isUrlAbsolute = (url) => (url.indexOf('://') > 0 || url.indexOf('//') === 0);
-
   const defaultViewport = { width: 1440, height: 770 };
   const puppeteerOptions = {
     product: 'chrome',
@@ -82,6 +80,11 @@ function createServer({
           waitUntil: 'domcontentloaded', // defaults to load
         });
         const validUrl = pageHTTPResponse.url();
+
+        // check again if puppeteer's validUrl will pass the test
+        if (validUrl !== url && !isValidURL(validUrl)) {
+          res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
+        }
 
         // Get the "viewport" of the page, as reported by the page.
         const pageDimensions = await page.evaluate(() => {
@@ -224,7 +227,7 @@ function createServer({
       }
 
       const serverRequest = parsedSSL.request(options, serverResponse => {
-        // No need to check for redirected. Puppeteer will make sure final validURL exists 
+        // No need to check for redirects. Puppeteer will make sure final validURL exists 
         callback(serverResponse, clientResponse);
       });
 
