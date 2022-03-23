@@ -1,3 +1,7 @@
+## 1.6.1 (2022-03-23)
+
+- Fixed ssrf vulnerability
+
 ## 1.6.0 (2022-03-21)
 
 - Added a link data retrieval function in the injected script
