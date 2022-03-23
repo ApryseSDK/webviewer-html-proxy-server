@@ -29,32 +29,36 @@ const BLOCKLIST = [
 
 const isValidURL = (url, allowHTTPProxy) => {
   let link = url.toLowerCase();
-  const { hostname, port, protocol } = new URL(link);
+  try {
+    const { hostname, port, protocol } = new URL(link);
 
-  if (!allowHTTPProxy) {
-    if (protocol === 'http:') {
+    if (!allowHTTPProxy) {
+      if (protocol === 'http:') {
+        return false;
+      }
+    }
+
+    // Confirm this is a domain not an IP address by checking the hostname
+    // ends with a two-letter or three-letter domain.
+    if (!(/[a-zA-Z]{2,3}$/.test(hostname))) {
       return false;
     }
-  }
 
-  // Confirm this is a domain not an IP address by checking the hostname
-  // ends with a two-letter or three-letter domain.
-  if (!(/[a-zA-Z]{2,3}$/.test(hostname))) {
+    // Be suspicious of anything that supplies a port.
+    if (port) {
+      return false;
+    }
+
+    // Check the block list of forbidden sites.
+    if (BLOCKLIST.some(el => hostname.startsWith(el))) {
+      return false;
+    }
+
+    // eslint-disable-next-line no-useless-escape
+    return /(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gi.test(link);
+  } catch {
     return false;
   }
-
-  // Be suspicious of anything that supplies a port.
-  if (port) {
-    return false;
-  }
-
-  // Check the block list of forbidden sites.
-  if (BLOCKLIST.some(el => hostname.startsWith(el))) {
-    return false;
-  }
-
-  // eslint-disable-next-line no-useless-escape
-  return /(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gi.test(link);
 }
 
 module.exports = isValidURL;
