@@ -82,10 +82,10 @@ function createServer({
           });
 
           console.log('\x1b[31m%s\x1b[0m', `
-          ***********************************************************************
-          ********************** NEW REQUEST: ${validUrl}
-          ***********************************************************************
-        `);
+            ***********************************************************************
+            ********************** NEW REQUEST: ${validUrl}
+            ***********************************************************************
+          `);
 
           // cookie will only be set when res is sent succesfully
           const oneHour: number = 1000 * 60 * 60;
@@ -108,8 +108,8 @@ function createServer({
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
       console.log('\x1b[31m%s\x1b[0m', `
-          ********************** DOWNLOAD: ${url}
-    `);
+            ********************** DOWNLOAD: ${url}
+      `);
       const browser = await puppeteer.launch(puppeteerOptions);
       try {
         const page = await browser.newPage();
