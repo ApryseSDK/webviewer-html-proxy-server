@@ -1,3 +1,9 @@
+## 1.6.2 (2022-03-24)
+
+- Fixed ssrf vulnerability
+- Versions <=1.6.0 are deprecated
+
+
 ## 1.6.1 (2022-03-23)
 
 - Fixed ssrf vulnerability
