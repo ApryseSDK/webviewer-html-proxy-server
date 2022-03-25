@@ -64,8 +64,8 @@ function createServer({
 
   app.get('/pdftron-proxy', async (req, res) => {
     // this is the url retrieved from the input
-    const url = req.query.url;
-    // ****** first check for human readable URL with simple regex
+    const url = `${req.query.url}`.toLowerCase();
+    // ****** first check for malicious URLs
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
@@ -82,33 +82,33 @@ function createServer({
         const validUrl = pageHTTPResponse.url();
 
         // check again if puppeteer's validUrl will pass the test
-        if (validUrl !== url && !isValidURL(validUrl)) {
+        if (validUrl !== url && !isValidURL(validUrl, ALLOW_HTTP_PROXY)) {
           res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
-        }
-
-        // Get the "viewport" of the page, as reported by the page.
-        const pageDimensions = await page.evaluate(() => {
-          let sum = 0;
-          document.body.childNodes.forEach(el => {
-            if (!isNaN(el.clientHeight))
-              sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
+        } else {
+          // Get the "viewport" of the page, as reported by the page.
+          const pageDimensions = await page.evaluate(() => {
+            let sum = 0;
+            document.body.childNodes.forEach(el => {
+              if (!isNaN(el.clientHeight))
+                sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
+            });
+            return {
+              width: document.body.scrollWidth || document.body.clientWidth || 1440,
+              height: sum,
+            };
           });
-          return {
-            width: document.body.scrollWidth || document.body.clientWidth || 1440,
-            height: sum,
-          };
-        });
 
-        console.log('\x1b[31m%s\x1b[0m', `
-          ***********************************************************************
-          ********************** NEW REQUEST: ${validUrl}
-          ***********************************************************************
-        `);
+          console.log('\x1b[31m%s\x1b[0m', `
+            ***********************************************************************
+            ********************** NEW REQUEST: ${validUrl}
+            ***********************************************************************
+          `);
 
-        // cookie will only be set when res is sent succesfully
-        const oneHour = 1000 * 60 * 60;
-        res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
-        res.status(200).send({ validUrl, pageDimensions });
+          // cookie will only be set when res is sent succesfully
+          const oneHour = 1000 * 60 * 60;
+          res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
+          res.status(200).send({ validUrl, pageDimensions });
+        }
       } catch (err) {
         console.error('/pdftron-proxy', err);
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
@@ -120,41 +120,46 @@ function createServer({
 
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req, res) => {
-    console.log('\x1b[31m%s\x1b[0m', `
-          ********************** DOWNLOAD: ${req.query.url}
-    `);
-    // check again here to avoid server being blown up, tested with saving github
-    const browser = await puppeteer.launch(puppeteerOptions);
-    try {
-      const page = await browser.newPage();
-      await page.goto(`${req.query.url}`, {
-        waitUntil: 'domcontentloaded'
-      });
-      await page.waitForTimeout(2000);
-      const buffer = await page.screenshot({ type: 'png', fullPage: true });
-      res.setHeader('Cache-Control', ['no-cache', 'no-store', 'must-revalidate']);
-      // buffer is sent as an response then client side consumes this to create a PDF
-      // if send as a buffer can't convert that to PDF on client
-      res.send(buffer);
-    } catch (err) {
-      console.error('/pdftron-download', err);
-      res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
-    } finally {
-      browser.close();
+    const url = `${req.query.url}`.toLowerCase();
+    if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
+      res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
+    } else {
+      console.log('\x1b[31m%s\x1b[0m', `
+            ********************** DOWNLOAD: ${url}
+      `);
+      const browser = await puppeteer.launch(puppeteerOptions);
+      try {
+        const page = await browser.newPage();
+        await page.goto(url, {
+          waitUntil: 'domcontentloaded'
+        });
+        await page.waitForTimeout(2000);
+        const buffer = await page.screenshot({ type: 'png', fullPage: true });
+        res.setHeader('Cache-Control', ['no-cache', 'no-store', 'must-revalidate']);
+        // buffer is sent as an response then client side consumes this to create a PDF
+        // if send as a buffer can't convert that to PDF on client
+        res.send(buffer);
+      } catch (err) {
+        console.error('/pdftron-download', err);
+        res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
+      } finally {
+        browser.close();
+      }
     }
   });
 
   // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest, clientResponse) => {
-    const validUrl = clientRequest.cookies.pdftron_proxy_sid;
-    if (validUrl) {
+    const cookiesUrl = clientRequest.cookies.pdftron_proxy_sid;
+    // check again for all requests that go through the proxy server
+    if (cookiesUrl && isValidURL(cookiesUrl, ALLOW_HTTP_PROXY)) {
       const {
         parsedHost,
         parsedPort,
         parsedSSL,
         pathname
-      } = getHostPortSSL(validUrl);
+      } = getHostPortSSL(cookiesUrl);
 
       const options = {
         hostname: parsedHost,
@@ -177,11 +182,9 @@ function createServer({
         delete serverResponse.headers['set-cookie'];
         delete serverResponse.headers['x-frame-options'];
         delete serverResponse.headers['content-security-policy'];
-        // serverResponse.headers['content-security-policy'] = `frame-ancestors 'self' ${CORS_OPTIONS.origin}`;
         serverResponse.headers['cross-origin-resource-policy'] = 'cross-origin';
         // 'require-corp' works fine on staging but doesn't on localhost: should use 'credentialless'
         serverResponse.headers['cross-origin-embedder-policy'] = 'credentialless';
-        // serverResponse.headers['cross-origin-opener-policy'] = 'same-origin';
 
         // reset cache-control for https://www.keytrudahcp.com
         serverResponse.headers['cache-control'] = 'max-age=0, public, no-cache, no-store, must-revalidate';
