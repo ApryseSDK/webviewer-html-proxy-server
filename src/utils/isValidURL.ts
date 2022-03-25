@@ -28,10 +28,14 @@ const STARTSWITH_BLOCKLIST = [
   "::1",
   "instance-data",
   "metadata",
+  "localtest",
 ]
 
-const isValidURL = (url: string, allowHTTPProxy: boolean): boolean => {
-  if (CONTAINS_BLOCKLIST.some(el => url.includes(el))) {
+const isValidURL = (url: string, allowHTTPProxy: boolean = false): boolean => {
+  // if doesn't convert to lowercase outside then should do it here
+
+  // Check the block list of forbidden sites.
+  if (CONTAINS_BLOCKLIST.some(el => url.includes(el.toLowerCase()))) {
     return false;
   }
 
@@ -42,6 +46,11 @@ const isValidURL = (url: string, allowHTTPProxy: boolean): boolean => {
       if (protocol === 'http:') {
         return false;
       }
+    }
+
+    // Check if domain starts with a number
+    if ((/^[0-9]/.test(hostname))) {
+      return false;
     }
 
     // Confirm this is a domain not an IP address by checking the hostname
@@ -59,7 +68,7 @@ const isValidURL = (url: string, allowHTTPProxy: boolean): boolean => {
     if (STARTSWITH_BLOCKLIST.some(el => hostname.startsWith(el))) {
       return false;
     }
-    if (CONTAINS_BLOCKLIST.some(el => hostname.includes(el))) {
+    if (CONTAINS_BLOCKLIST.some(el => hostname.includes(el.toLowerCase()))) {
       return false;
     }
 

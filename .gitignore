@@ -3,3 +3,4 @@ package-lock.json
 public/*
 !public/pdf
 dist
+doc

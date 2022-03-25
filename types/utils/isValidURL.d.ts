@@ -1,2 +1,2 @@
-declare const isValidURL: (url: string, allowHTTPProxy: boolean) => boolean;
+declare const isValidURL: (url: string, allowHTTPProxy?: boolean) => boolean;
 export { isValidURL };
