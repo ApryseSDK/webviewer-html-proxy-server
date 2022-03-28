@@ -8,13 +8,13 @@ a[href]:not([href^="#"]):not([role="button"]) * {
     cursor: default;
 }
 
-a[href]:not([href^="#"]):not([role="button"]):active {
+/* a[href]:not([href^="#"]):not([role="button"]):active {
     pointer-events: none !important;
 }
 
 a:not([href]):not([role="button"]):not([class*="button"]):not([class*="Button"]):active {
     pointer-events: none !important;
-}
+} */
 
 button[type="submit"]:active {
     pointer-events: none !important;
