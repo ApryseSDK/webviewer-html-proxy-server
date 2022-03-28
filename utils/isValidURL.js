@@ -31,9 +31,11 @@ const STARTSWITH_BLOCKLIST = [
   "localtest",
 ]
 
-const isValidURL = (url, allowHTTPProxy) => {
+const isValidURL = (url, allowHTTPProxy = false) => {
+  // if doesn't convert to lowercase outside then should do it here
+
   // Check the block list of forbidden sites.
-  if (CONTAINS_BLOCKLIST.some(el => url.includes(el))) {
+  if (CONTAINS_BLOCKLIST.some(el => url.includes(el.toLowerCase()))) {
     return false;
   }
 
@@ -66,7 +68,7 @@ const isValidURL = (url, allowHTTPProxy) => {
     if (STARTSWITH_BLOCKLIST.some(el => hostname.startsWith(el))) {
       return false;
     }
-    if (CONTAINS_BLOCKLIST.some(el => hostname.includes(el))) {
+    if (CONTAINS_BLOCKLIST.some(el => hostname.includes(el.toLowerCase()))) {
       return false;
     }
 

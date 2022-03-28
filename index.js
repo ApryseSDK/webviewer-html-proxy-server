@@ -23,6 +23,10 @@ function createServer({
 }) {
   console.log('createServer', SERVER_ROOT, PORT);
 
+  if (ALLOW_HTTP_PROXY) {
+    console.warn("\x1b[31m%s\x1b[0m", "*** Unsecured HTTP websites can now be proxied. Beware of ssrf attacks. See more here https://brightsec.com/blog/ssrf-server-side-request-forgery/")
+  }
+
   const app = express();
   app.use(cookieParser());
   app.use(cors(CORS_OPTIONS));
@@ -98,7 +102,7 @@ function createServer({
             };
           });
 
-          console.log('\x1b[31m%s\x1b[0m', `
+          console.log('\x1b[32m%s\x1b[0m', `
             ***********************************************************************
             ********************** NEW REQUEST: ${validUrl}
             ***********************************************************************
@@ -124,7 +128,7 @@ function createServer({
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
-      console.log('\x1b[31m%s\x1b[0m', `
+      console.log('\x1b[32m%s\x1b[0m', `
             ********************** DOWNLOAD: ${url}
       `);
       const browser = await puppeteer.launch(puppeteerOptions);
