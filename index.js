@@ -21,8 +21,6 @@ function createServer({
   COOKIE_SETTING = {},
   ALLOW_HTTP_PROXY = false,
 }) {
-  console.log('createServer', SERVER_ROOT, PORT);
-
   if (ALLOW_HTTP_PROXY) {
     console.warn("\x1b[31m%s\x1b[0m", "*** Unsecured HTTP websites can now be proxied. Beware of ssrf attacks. See more here https://brightsec.com/blog/ssrf-server-side-request-forgery/")
   }
@@ -201,6 +199,7 @@ function createServer({
 
           serverResponse.on('end', function () {
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
+            const globalVarsScript = `<script type='text/javascript'>window.PDFTron = {}; window.PDFTron.urlToProxy = '${cookiesUrl}';</script>`;
             const debounceScript = `<script type='text/javascript' id='pdftron-js'>${debounceJS}</script>`;
             const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
             const textScript = `<script type='text/javascript'>${sendTextDataScript}</script>`;
@@ -213,7 +212,7 @@ function createServer({
 
               if (!/pdftron-js/.test(body)) {
                 // order: debounce first, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
-                body = body.slice(0, headIndex) + debounceScript + navigationScript + textScript + body.slice(headIndex);
+                body = body.slice(0, headIndex) + globalVarsScript + debounceScript + navigationScript + textScript + body.slice(headIndex);
               }
             }
 

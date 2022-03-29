@@ -1,4 +1,4 @@
-const onKeydownCB = (e) => {
+const onKeydownCallback = (e) => {
   if (e.key == 'Enter') {
     e.preventDefault();
   }
@@ -6,32 +6,41 @@ const onKeydownCB = (e) => {
 
 const blockNavigation = () => {
   // block navigation for all a tags that don't start with #  
-  document.querySelectorAll('a:not([href^="#"])').forEach(x => {
-    // if (!!x.href && x.href != 'javascript:void(0);') {
-    //   // x.href returns absolute URL instead of relative URL
-    //   x.setAttribute('data-href', x.getAttribute('href'));
-    //   x.setAttribute('href', 'javascript:void(0);');
-    // }
-    x.setAttribute("target", "_blank");
+  document.querySelectorAll('a:not([href^="#"])').forEach(elem => {
+    if (!!elem.href) {
+      elem.setAttribute('data-href', elem.getAttribute('href'));
+      // If the url is absolute then new URL won't mess it up.
+      // It will only append urlToProxy if it is relative.
+      const { urlToProxy } = window.PDFTron;
+      console.log('window.PDFTron', window, window.PDFTron);
+      elem.setAttribute('href', new URL(elem.getAttribute('href'), urlToProxy).href);
+
+      elem.addEventListener('click', (event) => {
+        // event.preventDefault();
+        event.stopImmediatePropagation();
+        event.stopPropagation();
+      });
+    }
+    elem.setAttribute("target", "_blank");
   });
   
   // for all a tags that start with #, copy to data-href for WV link annotation
-  document.querySelectorAll('a[href^="#"]').forEach(x => {
-    x.setAttribute('data-href', x.getAttribute('href'));
+  document.querySelectorAll('a[href^="#"]').forEach(elem => {
+    elem.setAttribute('data-href', elem.getAttribute('href'));
   });
   // for keyboard tabbing
-  document.querySelectorAll('a, button, [role="button"], input').forEach(x => x.setAttribute("tabindex", -1));
+  document.querySelectorAll('a, button, [role="button"], input').forEach(elem => elem.setAttribute("tabindex", -1));
 
-  document.querySelectorAll('input').forEach(x => {
-    if (!x.readOnly) {
-      x.readOnly = true;
+  document.querySelectorAll('input').forEach(elem => {
+    if (!elem.readOnly) {
+      elem.readOnly = true;
       // for amazon search input keypress enter
-      x.onkeydown = onKeydownCB;
+      elem.onkeydown = onKeydownCallback;
     }
   });
 
   // for wikipedia <select> language keypress enter
-  document.querySelectorAll('select').forEach(x => x.onkeydown = onKeydownCB);
+  document.querySelectorAll('select').forEach(elem => elem.onkeydown = onKeydownCallback);
 }
 
 const debounceBlockNavigation = debounceJS(blockNavigation, 1000, false);
