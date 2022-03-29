@@ -8,9 +8,11 @@ const blockNavigation = () => {
   // block navigation for all a tags that don't start with #  
   document.querySelectorAll('a:not([href^="#"])').forEach(elem => {
     // in subsequent debouncing, make sure to only run this for new <a>
-    if (!!elem.href && elem.getAttribute('target') != '_blank') {
+    if (!!elem.href && elem.dataset.pdftron != 'pdftron') {
       elem.setAttribute('target', '_blank');
-      elem.setAttribute('data-href', elem.getAttribute('href')); // to be removed
+      // set this attibute to identify if <a> href has been modified
+      elem.setAttribute('data-pdftron', 'pdftron');
+      elem.setAttribute('data-href', elem.getAttribute('href')); // TO BE REMOVED
       // If the url is absolute then new URL won't mess it up.
       // It will only append urlToProxy if it is relative.
       const { urlToProxy } = window.PDFTron;
@@ -23,10 +25,11 @@ const blockNavigation = () => {
     }
   });
 
-  // for all a tags that start with #, copy to data-href for WV link annotation
+  // TO BE REMOVED for all a tags that start with #, copy to data-href for WV link annotation
   document.querySelectorAll('a[href^="#"]').forEach(elem => {
     elem.setAttribute('data-href', elem.getAttribute('href'));
   });
+
   // for keyboard tabbing
   document.querySelectorAll('a, button, [role="button"], input').forEach(elem => elem.setAttribute("tabindex", -1));
 
