@@ -199,8 +199,8 @@ function createServer({
 
           serverResponse.on('end', function () {
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
-            const globalVarsScript = `<script type='text/javascript'>window.PDFTron = {}; window.PDFTron.urlToProxy = '${cookiesUrl}';</script>`;
-            const debounceScript = `<script type='text/javascript' id='pdftron-js'>${debounceJS}</script>`;
+            const globalVarsScript = `<script type='text/javascript' id='pdftron-js'>window.PDFTron = {}; window.PDFTron.urlToProxy = '${cookiesUrl}';</script>`;
+            const debounceScript = `<script type='text/javascript'>${debounceJS}</script>`;
             const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
             const textScript = `<script type='text/javascript'>${sendTextDataScript}</script>`;
 
@@ -211,7 +211,7 @@ function createServer({
               }
 
               if (!/pdftron-js/.test(body)) {
-                // order: debounce first, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
+                // order: declare glbal var first, then debounce, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
                 body = body.slice(0, headIndex) + globalVarsScript + debounceScript + navigationScript + textScript + body.slice(headIndex);
               }
             }

@@ -7,22 +7,22 @@ const onKeydownCallback = (e) => {
 const blockNavigation = () => {
   // block navigation for all a tags that don't start with #  
   document.querySelectorAll('a:not([href^="#"])').forEach(elem => {
-    if (!!elem.href) {
-      elem.setAttribute('data-href', elem.getAttribute('href'));
+    // in subsequent debouncing, make sure to only run this for new <a>
+    if (!!elem.href && elem.getAttribute('target') != '_blank') {
+      elem.setAttribute('target', '_blank');
+      elem.setAttribute('data-href', elem.getAttribute('href')); // to be removed
       // If the url is absolute then new URL won't mess it up.
       // It will only append urlToProxy if it is relative.
       const { urlToProxy } = window.PDFTron;
       elem.setAttribute('href', new URL(elem.getAttribute('href'), urlToProxy).href);
 
       elem.addEventListener('click', (event) => {
-        // event.preventDefault();
         event.stopImmediatePropagation();
         event.stopPropagation();
       });
     }
-    elem.setAttribute("target", "_blank");
   });
-  
+
   // for all a tags that start with #, copy to data-href for WV link annotation
   document.querySelectorAll('a[href^="#"]').forEach(elem => {
     elem.setAttribute('data-href', elem.getAttribute('href'));
