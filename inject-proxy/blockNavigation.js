@@ -12,7 +12,6 @@ const blockNavigation = () => {
       // If the url is absolute then new URL won't mess it up.
       // It will only append urlToProxy if it is relative.
       const { urlToProxy } = window.PDFTron;
-      console.log('window.PDFTron', window, window.PDFTron);
       elem.setAttribute('href', new URL(elem.getAttribute('href'), urlToProxy).href);
 
       elem.addEventListener('click', (event) => {
