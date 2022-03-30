@@ -129,6 +129,8 @@ function createServer({
         // Get the "viewport" of the page, as reported by the page.
         const pageDimensions = await page.evaluate(() => {
           let sum = 0;
+          // for some web pages, <html> and <body> have height: 100%
+          // sum up the children's height for an accurate page height
           document.body.childNodes.forEach(el => {
             if (!isNaN(el.clientHeight))
               sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
