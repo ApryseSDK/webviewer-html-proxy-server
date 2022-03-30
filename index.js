@@ -66,7 +66,7 @@ function createServer({
 
   app.get('/pdftron-proxy', async (req, res) => {
     // this is the url retrieved from the input
-    const url = `${req.query.url}`.toLowerCase();
+    const url = `${req.query.url}`;
     // ****** first check for malicious URLs
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
@@ -122,7 +122,7 @@ function createServer({
 
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req, res) => {
-    const url = `${req.query.url}`.toLowerCase();
+    const url = `${req.query.url}`;
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
