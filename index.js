@@ -21,8 +21,6 @@ function createServer({
   COOKIE_SETTING = {},
   ALLOW_HTTP_PROXY = false,
 }) {
-  console.log('createServer', SERVER_ROOT, PORT);
-
   if (ALLOW_HTTP_PROXY) {
     console.warn("\x1b[31m%s\x1b[0m", "*** Unsecured HTTP websites can now be proxied. Beware of ssrf attacks. See more here https://brightsec.com/blog/ssrf-server-side-request-forgery/")
   }
@@ -68,7 +66,7 @@ function createServer({
 
   app.get('/pdftron-proxy', async (req, res) => {
     // this is the url retrieved from the input
-    const url = `${req.query.url}`.toLowerCase();
+    const url = `${req.query.url}`;
     // ****** first check for malicious URLs
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
@@ -124,7 +122,7 @@ function createServer({
 
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req, res) => {
-    const url = `${req.query.url}`.toLowerCase();
+    const url = `${req.query.url}`;
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
@@ -201,7 +199,8 @@ function createServer({
 
           serverResponse.on('end', function () {
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
-            const debounceScript = `<script type='text/javascript' id='pdftron-js'>${debounceJS}</script>`;
+            const globalVarsScript = `<script type='text/javascript' id='pdftron-js'>window.PDFTron = {}; window.PDFTron.urlToProxy = '${cookiesUrl}';</script>`;
+            const debounceScript = `<script type='text/javascript'>${debounceJS}</script>`;
             const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
             const textScript = `<script type='text/javascript'>${sendTextDataScript}</script>`;
 
@@ -212,8 +211,8 @@ function createServer({
               }
 
               if (!/pdftron-js/.test(body)) {
-                // order: debounce first, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
-                body = body.slice(0, headIndex) + debounceScript + navigationScript + textScript + body.slice(headIndex);
+                // order: declare glbal var first, then debounce, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
+                body = body.slice(0, headIndex) + globalVarsScript + debounceScript + navigationScript + textScript + body.slice(headIndex);
               }
             }
 
