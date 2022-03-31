@@ -87,19 +87,6 @@ function createServer({
         if (validUrl !== url && !isValidURL(validUrl, ALLOW_HTTP_PROXY)) {
           res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
         } else {
-          // Get the "viewport" of the page, as reported by the page.
-          const pageDimensions = await page.evaluate(() => {
-            let sum = 0;
-            document.body.childNodes.forEach(el => {
-              if (!isNaN(el.clientHeight))
-                sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
-            });
-            return {
-              width: document.body.scrollWidth || document.body.clientWidth || 1440,
-              height: sum,
-            };
-          });
-
           console.log('\x1b[32m%s\x1b[0m', `
             ***********************************************************************
             ********************** NEW REQUEST: ${validUrl}
@@ -109,7 +96,7 @@ function createServer({
           // cookie will only be set when res is sent succesfully
           const oneHour = 1000 * 60 * 60;
           res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
-          res.status(200).send({ validUrl, pageDimensions });
+          res.status(200).send({ validUrl });
         }
       } catch (err) {
         console.error('/pdftron-proxy', err);
@@ -136,11 +123,27 @@ function createServer({
           waitUntil: 'domcontentloaded'
         });
         await page.waitForTimeout(2000);
+
+        // Get the "viewport" of the page, as reported by the page.
+        const pageDimensions = await page.evaluate(() => {
+          let sum = 0;
+          // for some web pages, <html> and <body> have height: 100%
+          // sum up the children's height for an accurate page height
+          document.body.childNodes.forEach(el => {
+            if (!isNaN(el.clientHeight))
+              sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
+          });
+          return {
+            width: document.body.scrollWidth || document.body.clientWidth || 1440,
+            height: sum,
+          };
+        });
+
         const buffer = await page.screenshot({ type: 'png', fullPage: true });
         res.setHeader('Cache-Control', ['no-cache', 'no-store', 'must-revalidate']);
         // buffer is sent as an response then client side consumes this to create a PDF
         // if send as a buffer can't convert that to PDF on client
-        res.send(buffer);
+        res.status(200).send({ buffer, pageDimensions });
       } catch (err) {
         console.error('/pdftron-download', err);
         res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });

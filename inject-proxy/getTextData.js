@@ -143,6 +143,9 @@ const isInvalidNode = (node) => {
 
 const getPageHeight = () => {
   let sum = 0;
+  // for some web pages, <html> and <body> have height: 100%
+  // sum up the children's height for an accurate page height
+  // example: when page expands and then shrinks, <body> height will not reflect this change since it's 100% (which is the iframe height)
   document.body.childNodes.forEach(el => {
     // some elements have undefined clientHeight
     // favor scrollHeight since clientHeight does not include padding
