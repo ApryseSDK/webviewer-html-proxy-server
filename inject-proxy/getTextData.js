@@ -168,8 +168,8 @@ const sendDataToClient = () => {
   window.parent.postMessage({ selectionData, linkData, iframeHeight }, getClientUrl());
 }
 
-const debounceSendDataWithLeading = debounceJS(sendDataToClient, 500, false);
-const debounceSendDataNoLeading = debounceJS(sendDataToClient, 50, false);
+const debounceSendDataOnMutation = debounceJS(sendDataToClient, 500, false);
+const debounceSendDataOnTransition = debounceJS(sendDataToClient, 50, false);
 
 window.addEventListener('message', e => {
   if (e.origin == getClientUrl() && e.data == 'loadTextData') {
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
   sendDataToClient();
 
   const observer = new MutationObserver((m, o) => {
-    debounceSendDataWithLeading();
+    debounceSendDataOnMutation();
   });
   observer.observe(document.body, {
     attributes: true,
@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('transitionend', () => {
-  debounceSendDataNoLeading();
+  debounceSendDataOnTransition();
 })
 
 // e.source from eventListener "message" is the host page, window.top

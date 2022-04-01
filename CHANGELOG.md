@@ -1,8 +1,8 @@
-## 1.6.2 (2022-03-24)
+## 1.7.0 (2022-04-01)
 
 - Fixed ssrf vulnerability
 - Versions <=1.6.0 are deprecated
-
+- In browse mode, links are opened in a new tab
 
 ## 1.6.1 (2022-03-23)
 

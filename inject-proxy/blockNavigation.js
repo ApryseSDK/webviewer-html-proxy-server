@@ -5,6 +5,8 @@ const onKeydownCallback = (e) => {
 }
 
 const blockNavigation = () => {
+  const { urlToProxy } = window.PDFTron;
+
   // block navigation for all a tags that don't start with #  
   document.querySelectorAll('a:not([href^="#"])').forEach(elem => {
     // in subsequent debouncing, make sure to only run this for new <a>
@@ -12,10 +14,10 @@ const blockNavigation = () => {
       elem.setAttribute('target', '_blank');
       // set this attibute to identify if <a> href has been modified
       elem.setAttribute('data-pdftron', 'pdftron');
-      elem.setAttribute('data-href', elem.getAttribute('href')); // TO BE REMOVED
+      elem.setAttribute('data-href', elem.getAttribute('href'));
+
       // If the url is absolute then new URL won't mess it up.
       // It will only append urlToProxy if it is relative.
-      const { urlToProxy } = window.PDFTron;
       elem.setAttribute('href', new URL(elem.getAttribute('href'), urlToProxy).href);
 
       elem.addEventListener('click', (event) => {
@@ -25,9 +27,10 @@ const blockNavigation = () => {
     }
   });
 
-  // TO BE REMOVED for all a tags that start with #, copy to data-href for WV link annotation
+  // for all a tags that start with #, copy to data-href for WV link annotation
   document.querySelectorAll('a[href^="#"]').forEach(elem => {
     elem.setAttribute('data-href', elem.getAttribute('href'));
+    elem.setAttribute('href', new URL(elem.getAttribute('href'), urlToProxy).href);
   });
 
   // for keyboard tabbing
@@ -45,14 +48,15 @@ const blockNavigation = () => {
   document.querySelectorAll('select').forEach(elem => elem.onkeydown = onKeydownCallback);
 }
 
-const debounceBlockNavigation = debounceJS(blockNavigation, 1000, false);
+const debounceBlockNavigationOnMutation = debounceJS(blockNavigation, 500, false);
+const debounceBlockNavigationOnTransition = debounceJS(blockNavigation, 50, false);
 
 document.addEventListener('DOMContentLoaded', () => {
   blockNavigation();
 
   // nytimes has a delayed-appended pre-footer section
   const observer = new MutationObserver((m, o) => {
-    debounceBlockNavigation();
+    debounceBlockNavigationOnMutation();
   });
   observer.observe(document.body, {
     attributes: false,
@@ -61,3 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     characterData: false,
   });
 });
+
+document.addEventListener('transitionend', () => {
+  debounceBlockNavigationOnTransition();
+})

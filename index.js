@@ -4,6 +4,8 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer');
 const cookieParser = require('cookie-parser');
+const { createLogger, format, transports } = require('winston');
+const { align, colorize, combine, printf, timestamp } = format;
 const { URL } = require('url');
 const fs = require('fs');
 const path = require('path');
@@ -21,8 +23,28 @@ function createServer({
   COOKIE_SETTING = {},
   ALLOW_HTTP_PROXY = false,
 }) {
+  const logger = createLogger({
+    format: combine(
+      timestamp({
+        format: "YYYY-MM-DD HH:mm:ss"
+      }),
+      align(),
+      printf(
+        ({ level, message, label, timestamp }) => `[${timestamp}] ${level}: ${message}`
+      ),
+      colorize({ all: true }),
+    ),
+    transports: [
+      new transports.Console({
+        format: combine(
+          colorize()
+        ),
+      })
+    ]
+  });
+
   if (ALLOW_HTTP_PROXY) {
-    console.warn("\x1b[31m%s\x1b[0m", "*** Unsecured HTTP websites can now be proxied. Beware of ssrf attacks. See more here https://brightsec.com/blog/ssrf-server-side-request-forgery/")
+    logger.warn("*** Unsecured HTTP websites can now be proxied. Beware of ssrf attacks. See more here https://brightsec.com/blog/ssrf-server-side-request-forgery/")
   }
 
   const app = express();
@@ -40,13 +62,14 @@ function createServer({
     const parsedHost = hostname;
     let parsedPort;
     let parsedSSL;
-    if (protocol == 'https:') {
-      parsedPort = 443;
-      parsedSSL = https;
-    }
-    if (protocol == 'http:') {
+    // proxied URLs will be prefixed with https if doesn't start with http(s)
+    // safe to assume that if it's not protocol http then it should be https
+    if (ALLOW_HTTP_PROXY && protocol == 'http:') {
       parsedPort = 80;
       parsedSSL = http;
+    } else {
+      parsedPort = 443;
+      parsedSSL = https;
     }
     return {
       parsedHost,
@@ -61,7 +84,7 @@ function createServer({
     product: 'chrome',
     defaultViewport,
     headless: true,
-    ignoreHTTPSErrors: true,
+    ignoreHTTPSErrors: false, // whether to ignore HTTPS errors during navigation
   };
 
   app.get('/pdftron-proxy', async (req, res) => {
@@ -87,11 +110,7 @@ function createServer({
         if (validUrl !== url && !isValidURL(validUrl, ALLOW_HTTP_PROXY)) {
           res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
         } else {
-          console.log('\x1b[32m%s\x1b[0m', `
-            ***********************************************************************
-            ********************** NEW REQUEST: ${validUrl}
-            ***********************************************************************
-          `);
+          logger.info(`********** NEW REQUEST: ${validUrl}`)
 
           // cookie will only be set when res is sent succesfully
           const oneHour = 1000 * 60 * 60;
@@ -99,7 +118,7 @@ function createServer({
           res.status(200).send({ validUrl });
         }
       } catch (err) {
-        console.error('/pdftron-proxy', err);
+        logger.error(`Puppeteer ${url}`, err);
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
       } finally {
         browser.close();
@@ -113,9 +132,7 @@ function createServer({
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
-      console.log('\x1b[32m%s\x1b[0m', `
-            ********************** DOWNLOAD: ${url}
-      `);
+      logger.info(`********** DOWNLOAD: ${url}`);
       const browser = await puppeteer.launch(puppeteerOptions);
       try {
         const page = await browser.newPage();
@@ -145,7 +162,7 @@ function createServer({
         // if send as a buffer can't convert that to PDF on client
         res.status(200).send({ buffer, pageDimensions });
       } catch (err) {
-        console.error('/pdftron-download', err);
+        logger.error(`/pdftron-download ${url}`, err);
         res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
       } finally {
         browser.close();
@@ -172,6 +189,7 @@ function createServer({
         path: clientRequest.url,
         method: clientRequest.method,
         insecureHTTPParser: true,
+        rejectUnauthorized: true, // verify the server's identity
         headers: {
           'User-Agent': clientRequest.headers['user-agent'],
           'Referer': `${PATH}${pathname}`,
@@ -240,12 +258,26 @@ function createServer({
         callback(serverResponse, clientResponse);
       });
 
+      serverRequest.on('error', (e) => {
+        serverRequest.end();
+        logger.error(`Http request, ${e}`);
+        clientResponse.writeHead(400, { 'Content-Type': 'text/plain' });
+        clientResponse.end(`${e}. Please enter a valid URL and try again.`);
+      });
+
+      serverRequest.on('timeout', (e) => {
+        serverRequest.end();
+        logger.error(`Http request timeout, ${e}`);
+        clientResponse.writeHead(400, { 'Content-Type': 'text/plain' });
+        clientResponse.end(`${e}. Please enter a valid URL and try again.`);
+      });
+
       serverRequest.end();
     }
   });
 
   app.listen(PORT);
-  console.log(`Running on ${PATH}`);
+  logger.info(`Running on ${PATH}`);
 };
 
 exports.createServer = createServer;
