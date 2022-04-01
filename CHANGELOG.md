@@ -2,7 +2,7 @@
 
 - Fixed ssrf vulnerability
 - Versions <=1.6.0 are deprecated
-- In browse mode, links are opened in a new tab
+- In browse mode, links can be clicked and will open the URLs in a new tab
 
 ## 1.6.1 (2022-03-23)
 
