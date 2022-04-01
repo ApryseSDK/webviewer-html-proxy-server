@@ -29,8 +29,10 @@ const blockNavigation = () => {
 
   // for all a tags that start with #, copy to data-href for WV link annotation
   document.querySelectorAll('a[href^="#"]').forEach(elem => {
-    elem.setAttribute('data-href', elem.getAttribute('href'));
-    elem.setAttribute('href', new URL(elem.getAttribute('href'), urlToProxy).href);
+    if (elem.dataset.pdftron != 'pdftron') {
+      elem.setAttribute('data-pdftron', 'pdftron');
+      elem.setAttribute('data-href', elem.getAttribute('href'));
+    }
   });
 
   // for keyboard tabbing
