@@ -3,6 +3,7 @@
 - Fixed ssrf vulnerability
 - Versions <=1.6.0 are deprecated
 - In browse mode, links can be clicked and will open the URLs in a new tab
+- Compatible with [WebViewer-HTML](https://www.npmjs.com/package/@pdftron/webviewer-html) v4.4.1
 
 ## 1.6.1 (2022-03-23)
 
@@ -11,12 +12,15 @@
 ## 1.6.0 (2022-03-21)
 
 - Added a link data retrieval function in the injected script
+- Compatible with [WebViewer-HTML](https://www.npmjs.com/package/@pdftron/webviewer-html) v4.4.0
 
 ## 1.5.0 (2022-03-02)
 
 - Added mutation observer to update the correct page height and text data and send back to client
 - More CSS and JS rules for blocking navigation
+- Compatible with [WebViewer-HTML](https://www.npmjs.com/package/@pdftron/webviewer-html) v4.3.0
 
 ## 1.4.0 (2022-02-15)
 
 - Injected a JS script in the proxy website to retrieve text data and send back to client
+- Compatible with [WebViewer-HTML](https://www.npmjs.com/package/@pdftron/webviewer-html) v4.2.0
