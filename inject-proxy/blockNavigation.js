@@ -7,7 +7,8 @@ const onKeydownCallback = (e) => {
 const blockNavigation = () => {
   const { urlToProxy } = window.PDFTron;
 
-  // block navigation for all a tags that don't start with #  
+  // block navigation for suspicious <a> that don't have href or empty href: stubbing onclick
+  // block navigation for all <a> that don't start with #
   document.querySelectorAll('a:not([href]), a[href=""], a[href]:not([href^="#"]):not([href="javascript: void(0)"])').forEach(elem => {
     // in subsequent debouncing, make sure to only run this for new <a>
     if (elem.dataset.pdftron != 'pdftron') {
