@@ -261,14 +261,22 @@ function createServer({
       serverRequest.on('error', (e) => {
         serverRequest.end();
         logger.error(`Http request, ${e}`);
-        clientResponse.writeHead(400, { 'Content-Type': 'text/plain' });
+        clientResponse.writeHead(400, {
+          'Content-Type': 'text/plain',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Cross-Origin-Embedder-Policy': 'credentialless',
+        });
         clientResponse.end(`${e}. Please enter a valid URL and try again.`);
       });
 
       serverRequest.on('timeout', (e) => {
         serverRequest.end();
         logger.error(`Http request timeout, ${e}`);
-        clientResponse.writeHead(400, { 'Content-Type': 'text/plain' });
+        clientResponse.writeHead(400, {
+          'Content-Type': 'text/plain',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Cross-Origin-Embedder-Policy': 'credentialless',
+        });
         clientResponse.end(`${e}. Please enter a valid URL and try again.`);
       });
 
