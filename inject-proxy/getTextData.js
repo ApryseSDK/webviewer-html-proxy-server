@@ -144,14 +144,20 @@ const isInvalidNode = (node) => {
 const getPageHeight = () => {
   let sum = 0;
   // for some web pages, <html> and <body> have height: 100%
-  // sum up the children's height for an accurate page height
+  // sum up the <body> children's height for an accurate page height
   // example: when page expands and then shrinks, <body> height will not reflect this change since it's 100% (which is the iframe height)
   document.body.childNodes.forEach(el => {
-    // some elements have undefined clientHeight
-    // favor scrollHeight since clientHeight does not include padding
-    // some hidden/collapsible elements have clientHeight 0 but positive scrollHeight
-    if (!isNaN(el.clientHeight))
-      sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
+    if (el.nodeType == Node.ELEMENT_NODE) {
+      const style = window.getComputedStyle(el);
+      // filter hidden/collapsible elements 
+      if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == 0) {
+        return;
+      }
+      // some elements have undefined clientHeight
+      // favor scrollHeight since clientHeight does not include padding
+      if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight))
+        sum += el.scrollHeight || el.clientHeight;
+    }
   });
   return sum;
 

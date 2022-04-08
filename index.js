@@ -145,10 +145,19 @@ function createServer({
         const pageDimensions = await page.evaluate(() => {
           let sum = 0;
           // for some web pages, <html> and <body> have height: 100%
-          // sum up the children's height for an accurate page height
+          // sum up the <body> children's height for an accurate page height
           document.body.childNodes.forEach(el => {
-            if (!isNaN(el.clientHeight))
-              sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
+            if (el.nodeType == Node.ELEMENT_NODE) {
+              const style = window.getComputedStyle(el);
+              // filter hidden/collapsible elements 
+              if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == 0) {
+                return;
+              }
+              // some elements have undefined clientHeight
+              // favor scrollHeight since clientHeight does not include padding
+              if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight))
+                sum += el.scrollHeight || el.clientHeight;
+            }
           });
           return {
             width: document.body.scrollWidth || document.body.clientWidth || 1440,

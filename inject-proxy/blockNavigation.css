@@ -8,6 +8,11 @@ input[type="search"] {
     pointer-events: none !important;
 }
 
+/* select address on amazon */
+[data-action]:active {
+    pointer-events: none !important;
+}
+
 /* for google voice icon and virginia lottery collapsible divs */
 div[role="button"]:not([aria-expanded]):active {
     pointer-events: none !important;

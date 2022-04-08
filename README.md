@@ -14,7 +14,7 @@ Call the `createServer` function in your server component and pass in an object 
 See: https://expressjs.com/en/resources/middleware/cors.html and https://expressjs.com/en/api.html#res.cookie
 
 ## Example
-```
+```javascript
 const HTMLProxyServer = require('@pdftron/webviewer-html-proxy-server');
 HTMLProxyServer.createServer({
     SERVER_ROOT: `http://localhost`,
@@ -24,7 +24,7 @@ HTMLProxyServer.createServer({
 
 Setting CORS example:
 
-```
+```javascript
 HTMLProxyServer.createServer({
     SERVER_ROOT: `http://localhost`,
     PORT: 3100,
@@ -39,7 +39,7 @@ HTMLProxyServer.createServer({
 
 Setting COOKIE example:
 
-```
+```javascript
 HTMLProxyServer.createServer({
     SERVER_ROOT: `http://localhost`,
     PORT: 3100,
@@ -52,7 +52,7 @@ HTMLProxyServer.createServer({
 
 Setting ALLOW_HTTP_PROXY example:
 
-```
+```javascript
 HTMLProxyServer.createServer({
     SERVER_ROOT: `http://localhost`,
     PORT: 3100,
