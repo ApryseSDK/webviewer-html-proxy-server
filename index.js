@@ -222,7 +222,8 @@ function createServer({
         serverResponse.headers['cache-control'] = 'max-age=0, public, no-cache, no-store, must-revalidate';
         let body = '';
         // Send html content from the proxied url to the browser so that it can spawn new requests.
-        if (String(serverResponse.headers['content-type']).indexOf('text/html') !== -1) {
+        const serverResponseContentType = serverResponse.headers['content-type'];
+        if (String(serverResponseContentType).indexOf('text/html') !== -1) {
           serverResponse.on('data', function (chunk) {
             body += chunk;
           });
@@ -250,14 +251,37 @@ function createServer({
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
           });
+
+          serverResponse.on('error', (e) => {
+            logger.error(e);
+          });
+
+        } else if (!!String(serverResponseContentType).indexOf('text/css') !== -1) {
+          let cssContent = '';
+          serverResponse.on('data', chunk => {
+            cssContent += chunk;
+          });
+
+          serverResponse.on('end', () => {
+            cssContent += `h1, h2 {background-color: red !important;}`;
+            // write will only append to existing clientResponse and needed to be piped
+            // use writeHead and end for http response
+            // use send for express response
+            clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers).end(cssContent);
+            // clientResponse.set(serverResponse.headers).send(cssContent);
+          });
+
+          serverResponse.on('error', (e) => {
+            logger.error(`Http request timeout, ${e}`);
+          });
         } else {
           // Pipe the server response from the proxied url to the browser so that new requests can be spawned for non-html content (js/css/json etc.)
           serverResponse.pipe(clientResponse, {
             end: true,
           });
           // Can be undefined
-          if (serverResponse.headers['content-type']) {
-            clientResponse.contentType(serverResponse.headers['content-type'])
+          if (serverResponseContentType) {
+            clientResponse.contentType(serverResponseContentType)
           }
         }
       }
