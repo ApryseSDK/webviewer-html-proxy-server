@@ -1,3 +1,7 @@
+## 1.7.1 (2022-04-08)
+
+- Improved page height calculation
+
 ## 1.7.0 (2022-04-01)
 
 - Fixed ssrf vulnerability
