@@ -8,6 +8,7 @@
   "types": "types/index.d.ts",
   "scripts": {
     "build": "webpack --mode=production --config webpack.config.js",
+    "build-doc": "rm -rf doc && ./node_modules/.bin/jsdoc -c jsdocconfig.json -t ./node_modules/ink-docstrap/template -R README.md",
     "watch-debug": "webpack --watch --mode=development --config webpack.config.js",
     "release-patch": "npm version patch && npm publish --access public",
     "release-minor": "npm version minor && npm publish --access public",

@@ -7,7 +7,7 @@ import type { CorsOptions } from 'cors';
 
 export type ServerConfigurationOptions = {
   SERVER_ROOT: string;
-  PORT: number | string;
+  PORT: number;
   CORS_OPTIONS?: CorsOptions;
   COOKIE_SETTING?: CookieOptions;
   ALLOW_HTTP_PROXY?: boolean,

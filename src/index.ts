@@ -24,13 +24,43 @@ import blockNavigationScript from './assets/blockNavigation.js';
 // @ts-ignore
 import blockNavigationStyle from './assets/blockNavigation.css';
 
-function createServer({
+/**
+ * This is a proxy solution to use with WebViewer-HTML that allows loading external HTML web pages so that HTML pages can be annotated.
+ * See the npm package on {@link https://www.npmjs.com/package/@pdftron/webviewer-html-proxy-server @pdftron/webviewer-html-proxy-server} for more information.
+ * @module @pdftron/webviewer-html-proxy-server
+ */
+
+/**
+ * Initializes the proxy server to load external HTML pages.
+ * @static
+ * @alias module:@pdftron/webviewer-html-proxy-server.createServer
+ * @param {object} options - The options objects containing SERVER_ROOT, PORT.
+ * @param {string} options.SERVER_ROOT
+ * Start the server on the specified host and port
+ * @param {number} options.PORT
+ * Start the server on the specified host and port
+ * @param {cors.CorsOptions} [options.CORS_OPTIONS]
+ * An object to configure CORS. See {@link https://expressjs.com/en/resources/middleware/cors.html}
+ * @param {express.CookieOptions} [options.COOKIE_SETTING]
+ * An object to configure COOKIE. See {@link https://expressjs.com/en/api.html#res.cookie}
+ * @param {boolean} [options.ALLOW_HTTP_PROXY]
+ * Boolean containing value to allow for unsecured HTTP websites to be proxied.
+ * @returns {void}
+ * @example
+ * const HTMLProxyServer = require('@pdftron/webviewer-html-proxy-server');
+   HTMLProxyServer.createServer({
+    SERVER_ROOT: `http://localhost`,
+    PORT: 3100
+   });
+ */
+
+const createServer = ({
   SERVER_ROOT,
   PORT,
   CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true },
   COOKIE_SETTING = { sameSite: 'none', secure: true },
   ALLOW_HTTP_PROXY = false
-}: ServerConfigurationOptions) {
+}: ServerConfigurationOptions): void => {
   const { align, colorize, combine, printf, timestamp } = format;
   const logger = createLogger({
     format: combine(
