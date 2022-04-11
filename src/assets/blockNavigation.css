@@ -1,21 +1,3 @@
-/* 
-    Block all a tags that don't start with # 
-    and don't have role="button" and don't have class "button" or "Button"
-*/
-
-a[href]:not([href^="#"]):not([role="button"]),
-a[href]:not([href^="#"]):not([role="button"]) * {
-    cursor: default;
-}
-
-a[href]:not([href^="#"]):not([role="button"]):active {
-    pointer-events: none !important;
-}
-
-a:not([href]):not([role="button"]):not([class*="button"]):not([class*="Button"]):active {
-    pointer-events: none !important;
-}
-
 button[type="submit"]:active {
     pointer-events: none !important;
 }
@@ -23,6 +5,11 @@ button[type="submit"]:active {
 /* search on amazon */
 input[type="submit"]:active,
 input[type="search"] {
+    pointer-events: none !important;
+}
+
+/* select address on amazon */
+[data-action]:active {
     pointer-events: none !important;
 }
 

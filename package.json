@@ -1,6 +1,6 @@
 {
   "name": "@pdftron/webviewer-html-proxy-server",
-  "version": "1.6.1",
+  "version": "1.7.1",
   "description": "This is a proxy server to use with @pdftron/webviewer-html",
   "main": "dist/main.js",
   "author": "PDFTron Systems Inc.",
@@ -18,7 +18,8 @@
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "puppeteer": "^13.5.1"
+    "puppeteer": "^13.5.1",
+    "winston": "^3.6.0"
   },
   "devDependencies": {
     "@babel/core": "^7.17.7",

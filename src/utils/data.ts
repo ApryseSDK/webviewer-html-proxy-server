@@ -1,7 +1,7 @@
 import type https from 'https';
 import type http from 'http';
 import type { RequestOptions, ServerOptions } from 'https';
-import type { BrowserOptions, ChromeArgOptions, LaunchOptions, Product } from "puppeteer";
+import type { BrowserLaunchArgumentOptions, BrowserConnectOptions, LaunchOptions, Product } from "puppeteer";
 import type { CookieOptions } from 'express';
 import type { CorsOptions } from 'cors';
 
@@ -13,7 +13,7 @@ export type ServerConfigurationOptions = {
   ALLOW_HTTP_PROXY?: boolean,
 }
 
-export type PuppeteerOptions = LaunchOptions & ChromeArgOptions & BrowserOptions & {
+export type PuppeteerOptions = LaunchOptions & BrowserConnectOptions & BrowserLaunchArgumentOptions & {
   product?: Product;
   extraPrefsFirefox?: Record<string, unknown>;
 }

@@ -5,6 +5,7 @@ import puppeteer from 'puppeteer';
 import cookieParser from 'cookie-parser';
 import type { ClientRequest, IncomingMessage } from 'http';
 import type { Request, Response } from 'express';
+import { createLogger, format, transports } from 'winston';
 
 // import from data types
 import type { PageDimensions, ProxyRequestOptions, PuppeteerOptions, ServerConfigurationOptions, Viewport } from './utils/data.js';
@@ -26,13 +27,33 @@ import blockNavigationStyle from './assets/blockNavigation.css';
 function createServer({
   SERVER_ROOT,
   PORT,
-  CORS_OPTIONS = { origin: `http://localhost:3000`, credentials: true },
+  CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true },
   COOKIE_SETTING = { sameSite: 'none', secure: true },
   ALLOW_HTTP_PROXY = false
 }: ServerConfigurationOptions) {
+  const { align, colorize, combine, printf, timestamp } = format;
+  const logger = createLogger({
+    format: combine(
+      timestamp({
+        format: "YYYY-MM-DD HH:mm:ss"
+      }),
+      align(),
+      printf(
+        ({ level, message, label, timestamp }) => `[${timestamp}] ${level}: ${message}`
+      ),
+      colorize({ all: true }),
+    ),
+    transports: [
+      new transports.Console({
+        format: combine(
+          colorize()
+        ),
+      })
+    ]
+  });
 
   if (ALLOW_HTTP_PROXY) {
-    console.warn("\x1b[31m%s\x1b[0m", "*** Unsecured HTTP websites can now be proxied. Beware of ssrf attacks. See more here https://brightsec.com/blog/ssrf-server-side-request-forgery/")
+    logger.warn("*** Unsecured HTTP websites can now be proxied. Beware of ssrf attacks. See more here https://brightsec.com/blog/ssrf-server-side-request-forgery/")
   }
 
   const app = express();
@@ -46,12 +67,12 @@ function createServer({
     product: 'chrome',
     defaultViewport,
     headless: true,
-    ignoreHTTPSErrors: true,
+    ignoreHTTPSErrors: false, // whether to ignore HTTPS errors during navigation
   };
 
   app.get('/pdftron-proxy', async (req: Request, res: Response) => {
     // this is the url retrieved from the input
-    const url: string = `${req.query.url}`.toLowerCase();
+    const url: string = `${req.query.url}`;
     // ****** first check for malicious URLs
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
@@ -72,32 +93,15 @@ function createServer({
         if (validUrl !== url && !isValidURL(validUrl, ALLOW_HTTP_PROXY)) {
           res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
         } else {
-          // Get the "viewport" of the page, as reported by the page.
-          const pageDimensions: PageDimensions = await page.evaluate(() => {
-            let sum: number = 0;
-            document.body.childNodes.forEach((el: any) => {
-              if (!isNaN(el.clientHeight))
-                sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
-            });
-            return {
-              width: document.body.scrollWidth || document.body.clientWidth || 1440,
-              height: sum,
-            };
-          });
-
-          console.log('\x1b[32m%s\x1b[0m', `
-            ***********************************************************************
-            ********************** NEW REQUEST: ${validUrl}
-            ***********************************************************************
-          `);
+          logger.info(`********** NEW REQUEST: ${validUrl}`)
 
           // cookie will only be set when res is sent succesfully
           const oneHour: number = 1000 * 60 * 60;
           res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
-          res.status(200).send({ validUrl, pageDimensions });
+          res.status(200).send({ validUrl });
         }
       } catch (err) {
-        console.error('/pdftron-proxy', err);
+        logger.error(`Puppeteer ${url}`, err);
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
       } finally {
         browser.close();
@@ -107,13 +111,11 @@ function createServer({
 
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req: Request, res: Response) => {
-    const url = `${req.query.url}`.toLowerCase();
+    const url = `${req.query.url}`;
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
-      console.log('\x1b[32m%s\x1b[0m', `
-            ********************** DOWNLOAD: ${url}
-      `);
+      logger.info(`********** DOWNLOAD: ${url}`);
       const browser = await puppeteer.launch(puppeteerOptions);
       try {
         const page = await browser.newPage();
@@ -121,13 +123,36 @@ function createServer({
           waitUntil: 'domcontentloaded'
         });
         await page.waitForTimeout(2000);
+
+        // Get the "viewport" of the page, as reported by the page.
+        const pageDimensions: PageDimensions = await page.evaluate(() => {
+          let sum = 0;
+          // for some web pages, <html> and <body> have height: 100%
+          // sum up the <body> children's height for an accurate page height
+          document.body.childNodes.forEach((el: Element) => {
+            if (el.nodeType == Node.ELEMENT_NODE) {
+              const style = window.getComputedStyle(el);
+              // filter hidden/collapsible elements 
+              if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == '0') {
+                return;
+              }
+              // some elements have undefined clientHeight
+              // favor scrollHeight since clientHeight does not include padding
+              if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight))
+                sum += el.scrollHeight || el.clientHeight;
+            }
+          });
+          return {
+            width: document.body.scrollWidth || document.body.clientWidth || 1440,
+            height: sum,
+          };
+        });
+
         const buffer = await page.screenshot({ type: 'png', fullPage: true });
         res.setHeader('Cache-Control', ['no-cache', 'no-store', 'must-revalidate']);
-        // buffer is sent as an response then client side consumes this to create a PDF
-        // if send as a buffer can't convert that to PDF on client
-        res.send(buffer);
+        res.status(200).send({ buffer, pageDimensions });
       } catch (err) {
-        console.error('/pdftron-download', err);
+        logger.error(`/pdftron-download ${url}`, err);
         res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
       } finally {
         browser.close();
@@ -138,7 +163,7 @@ function createServer({
   // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest: Request, clientResponse: Response) => {
-    const cookiesUrl = clientRequest.cookies.pdftron_proxy_sid;
+    const cookiesUrl: string = `${clientRequest.cookies.pdftron_proxy_sid}`;
     // check again for all requests that go through the proxy server
     if (cookiesUrl && isValidURL(cookiesUrl, ALLOW_HTTP_PROXY)) {
       const {
@@ -154,6 +179,7 @@ function createServer({
         path: clientRequest.url,
         method: clientRequest.method,
         insecureHTTPParser: true,
+        rejectUnauthorized: true, // verify the server's identity
         headers: {
           'User-Agent': clientRequest.headers['user-agent'],
           'Referer': `${PATH}${pathname}`,
@@ -184,7 +210,8 @@ function createServer({
 
           serverResponse.on('end', () => {
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
-            const debounceScript = `<script type='text/javascript' id='pdftron-js'>${debounceJS}</script>`;
+            const globalVarsScript = `<script type='text/javascript' id='pdftron-js'>window.PDFTron = {}; window.PDFTron.urlToProxy = '${cookiesUrl}';</script>`;
+            const debounceScript = `<script type='text/javascript'>${debounceJS}</script>`;
             const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
             const textScript = `<script type='text/javascript'>${sendTextDataScript}</script>`;
 
@@ -195,14 +222,18 @@ function createServer({
               }
 
               if (!/pdftron-js/.test(body)) {
-                // order: debounce first, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
-                body = body.slice(0, headIndex) + debounceScript + navigationScript + textScript + body.slice(headIndex);
+                // order: declare global var first, then debounce, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
+                body = body.slice(0, headIndex) + globalVarsScript + debounceScript + navigationScript + textScript + body.slice(headIndex);
               }
             }
 
             delete serverResponse.headers['content-length'];
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
+          });
+
+          serverResponse.on('error', (e) => {
+            logger.error(e);
           });
         } else {
           // Pipe the server response from the proxied url to the browser so that new requests can be spawned for non-html content (js/css/json etc.)
@@ -221,12 +252,34 @@ function createServer({
         callback(serverResponse, clientResponse);
       });
 
+      serverRequest.on('error', (e) => {
+        serverRequest.end();
+        logger.error(`Http request, ${e}`);
+        clientResponse.writeHead(400, {
+          'Content-Type': 'text/plain',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Cross-Origin-Embedder-Policy': 'credentialless',
+        });
+        clientResponse.end(`${e}. Please enter a valid URL and try again.`);
+      });
+
+      serverRequest.on('timeout', () => {
+        serverRequest.end();
+        logger.error(`Http request timeout`);
+        clientResponse.writeHead(400, {
+          'Content-Type': 'text/plain',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Cross-Origin-Embedder-Policy': 'credentialless',
+        });
+        clientResponse.end(`Http request timeout. Please enter a valid URL and try again.`);
+      });
+
       serverRequest.end();
     }
   });
 
   app.listen(PORT);
-  console.log(`Running on ${PATH}`);
+  logger.info(`Running on ${PATH}`);
 };
 
 export { createServer };
