@@ -150,7 +150,7 @@ const getPageHeight = () => {
     if (el.nodeType == Node.ELEMENT_NODE) {
       const style = window.getComputedStyle(el);
       // filter hidden/collapsible elements 
-      if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == 0) {
+      if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == '0') {
         return;
       }
       // some elements have undefined clientHeight

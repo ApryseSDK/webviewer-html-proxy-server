@@ -1,4 +1,4 @@
-# webviewer-html-proxy-server
+# Webviewer Html Proxy Server
 This is a proxy server to use with [HTML sample by PDFTron](https://github.com/PDFTron/webviewer-html-annotate-proxy)
 
 ## Install

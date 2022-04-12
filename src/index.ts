@@ -1,28 +1,67 @@
-const express = require('express');
-const cors = require('cors');
-const https = require('https');
-const http = require('http');
-const puppeteer = require('puppeteer');
-const cookieParser = require('cookie-parser');
-const { createLogger, format, transports } = require('winston');
-const { align, colorize, combine, printf, timestamp } = format;
-const { URL } = require('url');
-const fs = require('fs');
-const path = require('path');
-const isValidURL = require('./utils/isValidURL.js');
+// import from node_modules
+import express from 'express';
+import cors from 'cors';
+import puppeteer from 'puppeteer';
+import cookieParser from 'cookie-parser';
+import type { ClientRequest, IncomingMessage } from 'http';
+import type { Request, Response } from 'express';
+import { createLogger, format, transports } from 'winston';
 
-const debounceJS = fs.readFileSync(path.resolve(__dirname, './inject-proxy/debounceJS.js'), 'utf8');
-const sendTextDataScript = fs.readFileSync(path.resolve(__dirname, './inject-proxy/getTextData.js'), 'utf8');
-const blockNavigationScript = fs.readFileSync(path.resolve(__dirname, './inject-proxy/blockNavigation.js'), 'utf8');
-const blockNavigationStyle = fs.readFileSync(path.resolve(__dirname, './inject-proxy/blockNavigation.css'), 'utf8');
+// import from data types
+import type { PageDimensions, ProxyRequestOptions, PuppeteerOptions, ServerConfigurationOptions, Viewport } from './utils/data.js';
 
-function createServer({
+// import from utils
+import { isValidURL } from './utils/isValidURL';
+import { getHostPortSSL } from './utils/getHostPortSSL';
+
+// import raw from assets
+// @ts-ignore
+import debounceJS from './assets/debounceJS.js';
+// @ts-ignore
+import sendTextDataScript from './assets/getTextData.js';
+// @ts-ignore
+import blockNavigationScript from './assets/blockNavigation.js';
+// @ts-ignore
+import blockNavigationStyle from './assets/blockNavigation.css';
+
+/**
+ * This is a proxy solution to use with WebViewer-HTML that allows loading external HTML web pages so that HTML pages can be annotated.
+ * See the npm package on {@link https://www.npmjs.com/package/@pdftron/webviewer-html-proxy-server @pdftron/webviewer-html-proxy-server} for more information.
+ * @module @pdftron/webviewer-html-proxy-server
+ */
+
+/**
+ * Initializes the proxy server to load external HTML pages.
+ * @static
+ * @alias module:@pdftron/webviewer-html-proxy-server.createServer
+ * @param {object} options - The options objects containing SERVER_ROOT, PORT.
+ * @param {string} options.SERVER_ROOT
+ * Start the server on the specified host and port
+ * @param {number} options.PORT
+ * Start the server on the specified host and port
+ * @param {cors.CorsOptions} [options.CORS_OPTIONS]
+ * An object to configure CORS. See {@link https://expressjs.com/en/resources/middleware/cors.html}
+ * @param {express.CookieOptions} [options.COOKIE_SETTING]
+ * An object to configure COOKIE. See {@link https://expressjs.com/en/api.html#res.cookie}
+ * @param {boolean} [options.ALLOW_HTTP_PROXY]
+ * Boolean containing value to allow for unsecured HTTP websites to be proxied.
+ * @returns {void}
+ * @example
+ * const HTMLProxyServer = require('@pdftron/webviewer-html-proxy-server');
+   HTMLProxyServer.createServer({
+    SERVER_ROOT: `http://localhost`,
+    PORT: 3100
+   });
+ */
+
+const createServer = ({
   SERVER_ROOT,
   PORT,
   CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true },
-  COOKIE_SETTING = {},
-  ALLOW_HTTP_PROXY = false,
-}) {
+  COOKIE_SETTING = { sameSite: 'none', secure: true },
+  ALLOW_HTTP_PROXY = false
+}: ServerConfigurationOptions): void => {
+  const { align, colorize, combine, printf, timestamp } = format;
   const logger = createLogger({
     format: combine(
       timestamp({
@@ -51,45 +90,19 @@ function createServer({
   app.use(cookieParser());
   app.use(cors(CORS_OPTIONS));
 
-  const PATH = `${SERVER_ROOT}:${PORT}`;
+  const PATH: string = `${SERVER_ROOT}:${PORT}`;
 
-  const getHostPortSSL = (url) => {
-    const {
-      hostname,
-      pathname,
-      protocol
-    } = new URL(url);
-    const parsedHost = hostname;
-    let parsedPort;
-    let parsedSSL;
-    // proxied URLs will be prefixed with https if doesn't start with http(s)
-    // safe to assume that if it's not protocol http then it should be https
-    if (ALLOW_HTTP_PROXY && protocol == 'http:') {
-      parsedPort = 80;
-      parsedSSL = http;
-    } else {
-      parsedPort = 443;
-      parsedSSL = https;
-    }
-    return {
-      parsedHost,
-      parsedPort,
-      parsedSSL,
-      pathname,
-    }
-  }
-
-  const defaultViewport = { width: 1440, height: 770 };
-  const puppeteerOptions = {
+  const defaultViewport: Viewport = { width: 1440, height: 770 };
+  const puppeteerOptions: PuppeteerOptions = {
     product: 'chrome',
     defaultViewport,
     headless: true,
     ignoreHTTPSErrors: false, // whether to ignore HTTPS errors during navigation
   };
 
-  app.get('/pdftron-proxy', async (req, res) => {
+  app.get('/pdftron-proxy', async (req: Request, res: Response) => {
     // this is the url retrieved from the input
-    const url = `${req.query.url}`;
+    const url: string = `${req.query.url}`;
     // ****** first check for malicious URLs
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
@@ -104,7 +117,7 @@ function createServer({
           // use 'domcontentloaded' https://github.com/puppeteer/puppeteer/issues/1666
           waitUntil: 'domcontentloaded', // defaults to load
         });
-        const validUrl = pageHTTPResponse.url();
+        const validUrl: string = pageHTTPResponse.url();
 
         // check again if puppeteer's validUrl will pass the test
         if (validUrl !== url && !isValidURL(validUrl, ALLOW_HTTP_PROXY)) {
@@ -113,7 +126,7 @@ function createServer({
           logger.info(`********** NEW REQUEST: ${validUrl}`)
 
           // cookie will only be set when res is sent succesfully
-          const oneHour = 1000 * 60 * 60;
+          const oneHour: number = 1000 * 60 * 60;
           res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
           res.status(200).send({ validUrl });
         }
@@ -127,7 +140,7 @@ function createServer({
   });
 
   // need to be placed before app.use('/');
-  app.get('/pdftron-download', async (req, res) => {
+  app.get('/pdftron-download', async (req: Request, res: Response) => {
     const url = `${req.query.url}`;
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
@@ -142,15 +155,15 @@ function createServer({
         await page.waitForTimeout(2000);
 
         // Get the "viewport" of the page, as reported by the page.
-        const pageDimensions = await page.evaluate(() => {
+        const pageDimensions: PageDimensions = await page.evaluate(() => {
           let sum = 0;
           // for some web pages, <html> and <body> have height: 100%
           // sum up the <body> children's height for an accurate page height
-          document.body.childNodes.forEach(el => {
+          document.body.childNodes.forEach((el: Element) => {
             if (el.nodeType == Node.ELEMENT_NODE) {
               const style = window.getComputedStyle(el);
               // filter hidden/collapsible elements 
-              if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == 0) {
+              if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == '0') {
                 return;
               }
               // some elements have undefined clientHeight
@@ -167,8 +180,6 @@ function createServer({
 
         const buffer = await page.screenshot({ type: 'png', fullPage: true });
         res.setHeader('Cache-Control', ['no-cache', 'no-store', 'must-revalidate']);
-        // buffer is sent as an response then client side consumes this to create a PDF
-        // if send as a buffer can't convert that to PDF on client
         res.status(200).send({ buffer, pageDimensions });
       } catch (err) {
         logger.error(`/pdftron-download ${url}`, err);
@@ -181,8 +192,8 @@ function createServer({
 
   // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
-  app.use('/', (clientRequest, clientResponse) => {
-    const cookiesUrl = clientRequest.cookies.pdftron_proxy_sid;
+  app.use('/', (clientRequest: Request, clientResponse: Response) => {
+    const cookiesUrl: string = `${clientRequest.cookies.pdftron_proxy_sid}`;
     // check again for all requests that go through the proxy server
     if (cookiesUrl && isValidURL(cookiesUrl, ALLOW_HTTP_PROXY)) {
       const {
@@ -192,7 +203,7 @@ function createServer({
         pathname
       } = getHostPortSSL(cookiesUrl);
 
-      const options = {
+      const options: ProxyRequestOptions = {
         hostname: parsedHost,
         port: parsedPort,
         path: clientRequest.url,
@@ -206,7 +217,7 @@ function createServer({
         }
       };
 
-      const callback = (serverResponse, clientResponse) => {
+      const callback = (serverResponse: IncomingMessage, clientResponse: Response) => {
         // Delete 'x-frame-options': 'SAMEORIGIN'
         // so that the page can be loaded in an iframe
         // https://stackoverflow.com/questions/36628420/nodejs-request-hpe-invalid-header-token
@@ -220,28 +231,28 @@ function createServer({
 
         // reset cache-control for https://www.keytrudahcp.com
         serverResponse.headers['cache-control'] = 'max-age=0, public, no-cache, no-store, must-revalidate';
-        let body = '';
+        let body: string = '';
         // Send html content from the proxied url to the browser so that it can spawn new requests.
         if (String(serverResponse.headers['content-type']).indexOf('text/html') !== -1) {
-          serverResponse.on('data', function (chunk) {
+          serverResponse.on('data', (chunk: string) => {
             body += chunk;
           });
 
-          serverResponse.on('end', function () {
+          serverResponse.on('end', () => {
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
             const globalVarsScript = `<script type='text/javascript' id='pdftron-js'>window.PDFTron = {}; window.PDFTron.urlToProxy = '${cookiesUrl}';</script>`;
             const debounceScript = `<script type='text/javascript'>${debounceJS}</script>`;
             const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
             const textScript = `<script type='text/javascript'>${sendTextDataScript}</script>`;
 
-            const headIndex = body.indexOf('</head>');
+            const headIndex: number = body.indexOf('</head>');
             if (headIndex > 0) {
               if (!/pdftron-css/.test(body)) {
                 body = body.slice(0, headIndex) + styleTag + body.slice(headIndex);
               }
 
               if (!/pdftron-js/.test(body)) {
-                // order: declare glbal var first, then debounce, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
+                // order: declare global var first, then debounce, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
                 body = body.slice(0, headIndex) + globalVarsScript + debounceScript + navigationScript + textScript + body.slice(headIndex);
               }
             }
@@ -249,6 +260,10 @@ function createServer({
             delete serverResponse.headers['content-length'];
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
             clientResponse.end(body);
+          });
+
+          serverResponse.on('error', (e) => {
+            logger.error(e);
           });
         } else {
           // Pipe the server response from the proxied url to the browser so that new requests can be spawned for non-html content (js/css/json etc.)
@@ -262,7 +277,7 @@ function createServer({
         }
       }
 
-      const serverRequest = parsedSSL.request(options, serverResponse => {
+      const serverRequest: ClientRequest = parsedSSL.request(options, serverResponse => {
         // No need to check for redirects. Puppeteer will make sure final validURL exists 
         callback(serverResponse, clientResponse);
       });
@@ -278,15 +293,15 @@ function createServer({
         clientResponse.end(`${e}. Please enter a valid URL and try again.`);
       });
 
-      serverRequest.on('timeout', (e) => {
+      serverRequest.on('timeout', () => {
         serverRequest.end();
-        logger.error(`Http request timeout, ${e}`);
+        logger.error(`Http request timeout`);
         clientResponse.writeHead(400, {
           'Content-Type': 'text/plain',
           'Cross-Origin-Resource-Policy': 'cross-origin',
           'Cross-Origin-Embedder-Policy': 'credentialless',
         });
-        clientResponse.end(`${e}. Please enter a valid URL and try again.`);
+        clientResponse.end(`Http request timeout. Please enter a valid URL and try again.`);
       });
 
       serverRequest.end();
@@ -297,4 +312,4 @@ function createServer({
   logger.info(`Running on ${PATH}`);
 };
 
-exports.createServer = createServer;
+export { createServer };
