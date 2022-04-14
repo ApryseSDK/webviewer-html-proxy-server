@@ -127,33 +127,9 @@ const createServer = ({
         } else {
           logger.info(`********** NEW REQUEST: ${validUrl}`)
 
-          const pageDimensions: PageDimensions = await page.evaluate(() => {
-            let sum = 0;
-            // for some web pages, <html> and <body> have height: 100%
-            // sum up the <body> children's height for an accurate page height
-            document.body.childNodes.forEach((el: Element) => {
-              if (el.nodeType == Node.ELEMENT_NODE) {
-                const style = window.getComputedStyle(el);
-                // filter hidden/collapsible elements 
-                if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == '0') {
-                  return;
-                }
-                // some elements have undefined clientHeight
-                // favor scrollHeight since clientHeight does not include padding
-                if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight))
-                  sum += el.scrollHeight || el.clientHeight;
-              }
-            });
-            return {
-              width: document.body.scrollWidth || document.body.clientWidth || 1440,
-              height: sum,
-            };
-          });
-
           // cookie will only be set when res is sent succesfully
           const oneHour: number = 1000 * 60 * 60;
           res.cookie('pdftron_proxy_sid', validUrl, { ...COOKIE_SETTING, maxAge: oneHour });
-          res.cookie('pdftron_proxy_height', pageDimensions.height, { ...COOKIE_SETTING, maxAge: oneHour });
           res.status(200).send({ validUrl });
         }
       } catch (err) {
@@ -220,7 +196,6 @@ const createServer = ({
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest: Request, clientResponse: Response) => {
     const cookiesUrl: string = `${clientRequest.cookies.pdftron_proxy_sid}`;
-    const pageheight: number = clientRequest.cookies.pdftron_proxy_height;
     // check again for all requests that go through the proxy server
     if (cookiesUrl && isValidURL(cookiesUrl, ALLOW_HTTP_PROXY)) {
       const {
@@ -230,10 +205,23 @@ const createServer = ({
         pathname
       } = getHostPortSSL(cookiesUrl);
 
+      let newHostName = parsedHost;
+      let newPath = clientRequest.url;
+
+      let externalURL = clientRequest.url.split('/?pdftron=')[1];
+      if (externalURL) {
+        const { hostname, href, origin } = new URL(externalURL);
+        const hrefWithoutOrigin = href.split(origin)[1] || '';
+        newHostName = hostname;
+        newPath = hrefWithoutOrigin;
+      }
+
+      console.log('clientRequest.url', clientRequest.url, '***', newHostName, '***', newPath)
+
       const options: ProxyRequestOptions = {
-        hostname: parsedHost,
+        hostname: newHostName,
         port: parsedPort,
-        path: clientRequest.url,
+        path: newPath,
         method: clientRequest.method,
         insecureHTTPParser: true,
         rejectUnauthorized: true, // verify the server's identity
@@ -270,7 +258,7 @@ const createServer = ({
             const virtualDOM = new JSDOM(body);
             const { window } = virtualDOM;
             const { document } = window;
-            document.documentElement.style.setProperty('--vh', `${pageheight * 0.01}px`);
+            document.documentElement.style.setProperty('--vh', `${1050 * 0.01}px`);
 
             document.querySelectorAll("link").forEach(el => {
               const href = el.getAttribute('href');
@@ -293,45 +281,7 @@ const createServer = ({
                       // external URLs
                       // try on https://gotoadvantage.com/ 
                       el.setAttribute('data-pdftron', 'different-domain');
-                      // el.setAttribute('href', hrefWithoutOrigin);
-
-                      // const {
-                      //   parsedPort: parsedPort1,
-                      //   parsedSSL: parsedSSL1,
-                      // } = getHostPortSSL(absoluteHref);
-                      // console.log('different domain', absoluteHref, parsedPort1, parsedSSL1)
-
-                      // const options1: ProxyRequestOptions = {
-                      //   hostname: hostname,
-                      //   port: parsedPort1,
-                      //   path: `${PATH}${hrefWithoutOrigin}`,
-                      //   method: clientRequest.method,
-                      //   insecureHTTPParser: true,
-                      //   rejectUnauthorized: true, // verify the server's identity
-                      //   headers: {
-                      //     'User-Agent': clientRequest.headers['user-agent'],
-                      //     'Referer': `${PATH}${hrefWithoutOrigin}`,
-                      //     'Accept-Encoding': 'identity', // for amazon to work
-                      //   }
-                      // };
-
-                      // const serverRequest1: ClientRequest = parsedSSL1.request(options1, serverResponse1 => {
-                      //   // callback(serverResponse, clientResponse);
-                      //   let cssContent = '';
-                      //   serverResponse1.on('data', (chunk: string) => cssContent += chunk);
-                      //   serverResponse1.on('end', () => {
-                      //     clientResponse.writeHead(serverResponse1.statusCode, serverResponse1.headers).end(cssContent);
-                      //   });
-                      //   serverResponse1.on('error', (e) => {
-                      //     logger.error(`Http request timeout, ${e}`);
-                      //   });
-                      // });
-
-                      // serverRequest1.on('error', (e) => {
-                      //   serverRequest1.end();
-                      //   logger.error(`Http request, ${e}`);
-                      // });
-                      // serverRequest1.end();
+                      el.setAttribute('href', `${PATH}/?pdftron=${absoluteHref}`);
                     }
                   } catch (e) {
                     logger.error(e)
@@ -376,8 +326,7 @@ const createServer = ({
           serverResponse.on('data', (chunk: string) => cssContent += chunk);
 
           serverResponse.on('end', () => {
-            // cssContent += `\nh1, h2 {background-color: red !important;}`;
-            cssContent = cssContent.replace(/((height:).{0,10}[\d\s\)]?)vh/g, '$1 * var(--vh)');
+            cssContent = cssContent.replace(/(height:)(.{0,10}[\d\s\)]?)vh/g, 'height: calc($2 * var(--vh))');
             // write will only append to existing clientResponse and needed to be piped
             // use writeHead and end for http response
             // use send for express response
