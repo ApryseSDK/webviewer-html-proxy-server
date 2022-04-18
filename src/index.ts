@@ -7,6 +7,7 @@ import type { ClientRequest, IncomingMessage } from 'http';
 import type { Request, Response } from 'express';
 import { createLogger, format, transports } from 'winston';
 import { JSDOM } from 'jsdom';
+import { Gunzip, createGunzip } from 'zlib';
 
 // import from data types
 import type { PageDimensions, ProxyRequestOptions, PuppeteerOptions, ServerConfigurationOptions, Viewport } from './utils/data.js';
@@ -195,7 +196,7 @@ const createServer = ({
   // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest: Request, clientResponse: Response) => {
-    const cookiesUrl: string = `${clientRequest.cookies.pdftron_proxy_sid}`;
+    const cookiesUrl: string = clientRequest.cookies.pdftron_proxy_sid;
     // check again for all requests that go through the proxy server
     if (cookiesUrl && isValidURL(cookiesUrl, ALLOW_HTTP_PROXY)) {
       const {
@@ -208,15 +209,13 @@ const createServer = ({
       let newHostName = parsedHost;
       let newPath = clientRequest.url;
 
-      let externalURL = clientRequest.url.split('/?pdftron=')[1];
+      let externalURL = newPath.split('/?external-proxy=')[1];
       if (externalURL) {
         const { hostname, href, origin } = new URL(externalURL);
         const hrefWithoutOrigin = href.split(origin)[1] || '';
         newHostName = hostname;
         newPath = hrefWithoutOrigin;
       }
-
-      console.log('clientRequest.url', clientRequest.url, '***', newHostName, '***', newPath)
 
       const options: ProxyRequestOptions = {
         hostname: newHostName,
@@ -250,9 +249,7 @@ const createServer = ({
         // Send html content from the proxied url to the browser so that it can spawn new requests.
         const serverResponseContentType = serverResponse.headers['content-type'];
         if (String(serverResponseContentType).indexOf('text/html') !== -1) {
-          serverResponse.on('data', function (chunk) {
-            body += chunk;
-          });
+          serverResponse.on('data', (chunk: string) => body += chunk);
 
           serverResponse.on('end', () => {
             const virtualDOM = new JSDOM(body);
@@ -270,7 +267,8 @@ const createServer = ({
 
                   const absoluteHref = getCorrectHref(href);
                   try {
-                    const { hostname, pathname, href, origin } = new URL(absoluteHref);
+                    const { hostname, href, origin } = new URL(absoluteHref);
+                    // pathname doesn't include query and hash; use href.split(origin) to preserve everything
                     const hrefWithoutOrigin = href.split(origin)[1] || '';
                     el.setAttribute('data-domain', hostname);
                     // check if same domain with cookiesUrl
@@ -279,9 +277,8 @@ const createServer = ({
                       el.setAttribute('href', hrefWithoutOrigin);
                     } else {
                       // external URLs
-                      // try on https://gotoadvantage.com/ 
                       el.setAttribute('data-pdftron', 'different-domain');
-                      el.setAttribute('href', `${PATH}/?pdftron=${absoluteHref}`);
+                      el.setAttribute('href', `${PATH}/?external-proxy=${absoluteHref}`);
                     }
                   } catch (e) {
                     logger.error(e)
@@ -291,7 +288,6 @@ const createServer = ({
             });
 
             let newBody = virtualDOM.serialize();
-            // let newBody = body;
 
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
             const globalVarsScript = `<script type='text/javascript' id='pdftron-js'>window.PDFTron = {}; window.PDFTron.urlToProxy = '${cookiesUrl}';</script>`;
@@ -321,11 +317,24 @@ const createServer = ({
           });
 
         } else if (String(serverResponseContentType).indexOf('text/css') !== -1) {
-          console.log('serverResponse', (serverResponse as any).req.path)
-          let cssContent = '';
-          serverResponse.on('data', (chunk: string) => cssContent += chunk);
+          let cssContent: string = '';
+          let externalResponse: IncomingMessage | Gunzip = serverResponse;
+          const contentEncoding = serverResponse.headers['content-encoding'];
+          console.log('serverResponse', (serverResponse as any).req.path, '***', contentEncoding)
 
-          serverResponse.on('end', () => {
+          // https://stackoverflow.com/questions/62505328/decode-gzip-response-on-node-js-man-in-the-middle-proxy
+          if (contentEncoding?.toLowerCase().includes('gzip')) {
+            delete serverResponse.headers['content-encoding'];
+            externalResponse = createGunzip();
+            serverResponse.pipe(externalResponse);
+          }
+
+          externalResponse.on('data', (chunk: string) => cssContent += chunk);
+
+          externalResponse.on('end', () => {
+            if (contentEncoding?.toLowerCase().includes('gzip')) {
+              serverResponse.headers['content-length'] = `${cssContent.length}`;
+            }
             cssContent = cssContent.replace(/(height:\s*)(.{0,10}[\d\s\)]?)vh/g, '$1calc($2 * var(--vh))');
             // write will only append to existing clientResponse and needed to be piped
             // use writeHead and end for http response
@@ -334,8 +343,8 @@ const createServer = ({
             // clientResponse.set(serverResponse.headers).send(cssContent);
           });
 
-          serverResponse.on('error', (e) => {
-            logger.error(`Http request timeout, ${e}`);
+          externalResponse.on('error', (e) => {
+            logger.error(e);
           });
 
         } else {
