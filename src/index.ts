@@ -335,7 +335,7 @@ const createServer = ({
             if (contentEncoding?.toLowerCase().includes('gzip')) {
               serverResponse.headers['content-length'] = `${cssContent.length}`;
             }
-            cssContent = cssContent.replace(/(height:\s*)(.{0,10}[\d\s\)]?)vh/g, '$1calc($2 * var(--vh))');
+            cssContent = cssContent.replace(/(\d+?)vh/g, 'calc($1 * var(--vh))');
             // write will only append to existing clientResponse and needed to be piped
             // use writeHead and end for http response
             // use send for express response
