@@ -156,7 +156,6 @@ const getPageHeight = () => {
       // some elements have undefined clientHeight
       // favor scrollHeight since clientHeight does not include padding
       if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight))
-        // sum += el.scrollHeight || el.clientHeight;
         sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
 
     }

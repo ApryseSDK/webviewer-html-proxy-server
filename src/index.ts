@@ -172,12 +172,13 @@ const createServer = ({
               // some elements have undefined clientHeight
               // favor scrollHeight since clientHeight does not include padding
               if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight))
-                sum += el.scrollHeight || el.clientHeight;
+                sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
             }
           });
           return {
             width: document.body.scrollWidth || document.body.clientWidth || 1440,
-            height: sum,
+            // sum can be less than defaultViewport
+            height: sum > 770 ? sum : 770,
           };
         });
 
