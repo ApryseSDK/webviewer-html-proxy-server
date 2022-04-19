@@ -103,6 +103,8 @@ const createServer = ({
     ignoreHTTPSErrors: false, // whether to ignore HTTPS errors during navigation
   };
 
+  const regexForVhValue: RegExp = /(\d+?)vh/g;
+
   app.get('/pdftron-proxy', async (req: Request, res: Response) => {
     // this is the url retrieved from the input
     const url: string = `${req.query.url}`;
@@ -329,7 +331,6 @@ const createServer = ({
           let cssContent: string = '';
           let externalResponse: IncomingMessage | Gunzip = serverResponse;
           const contentEncoding = serverResponse.headers['content-encoding'];
-          console.log('serverResponse', (serverResponse as any).req.path, '***', contentEncoding)
 
           // https://stackoverflow.com/questions/62505328/decode-gzip-response-on-node-js-man-in-the-middle-proxy
           if (contentEncoding?.toLowerCase().includes('gzip')) {
@@ -341,10 +342,15 @@ const createServer = ({
           externalResponse.on('data', (chunk: string) => cssContent += chunk);
 
           externalResponse.on('end', () => {
-            if (contentEncoding?.toLowerCase().includes('gzip')) {
-              serverResponse.headers['content-length'] = `${cssContent.length}`;
+            if (regexForVhValue.test(cssContent)) {
+              cssContent = cssContent.replace(regexForVhValue, 'calc($1 * var(--vh))');
+              // need to update content-length after swapping vh values, only for gzip response
+              if (contentEncoding?.toLowerCase().includes('gzip')) {
+                serverResponse.headers['content-length'] = `${cssContent.length}`;
+              } else {
+                delete serverResponse.headers['content-length'];
+              }
             }
-            cssContent = cssContent.replace(/(\d+?)vh/g, 'calc($1 * var(--vh))');
             // write will only append to existing clientResponse and needed to be piped
             // use writeHead and end for http response
             // use send for express response
