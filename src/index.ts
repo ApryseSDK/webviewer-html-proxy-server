@@ -260,6 +260,10 @@ const createServer = ({
 
             document.querySelectorAll("link").forEach(el => {
               const href = el.getAttribute('href');
+              if (!href) {
+                return;
+              }
+
               // filter only CSS links
               if (el.rel == "stylesheet" || el.type == "text/css" || href.endsWith('.css')) {
                 if (!el.dataset.pdftron && isURLAbsolute(href)) {
@@ -280,6 +284,10 @@ const createServer = ({
                       // external URLs
                       el.setAttribute('data-pdftron', 'different-domain');
                       el.setAttribute('href', `${PATH}/?external-proxy=${absoluteHref}`);
+                      // fix for github Failed to find a valid digest in the integrity attribute
+                      if (el.getAttribute('integrity')) {
+                        el.setAttribute('integrity', '');
+                      }
                     }
                   } catch (e) {
                     logger.error(e)
