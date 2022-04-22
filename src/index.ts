@@ -6,6 +6,8 @@ import cookieParser from 'cookie-parser';
 import type { ClientRequest, IncomingMessage } from 'http';
 import type { Request, Response } from 'express';
 import { createLogger, format, transports } from 'winston';
+import { JSDOM } from 'jsdom';
+import { Gunzip, createGunzip } from 'zlib';
 
 // import from data types
 import type { PageDimensions, ProxyRequestOptions, PuppeteerOptions, ServerConfigurationOptions, Viewport } from './utils/data.js';
@@ -13,6 +15,7 @@ import type { PageDimensions, ProxyRequestOptions, PuppeteerOptions, ServerConfi
 // import from utils
 import { isValidURL } from './utils/isValidURL';
 import { getHostPortSSL } from './utils/getHostPortSSL';
+import { isURLAbsolute, getCorrectHref } from './utils/isURLAbsolute';
 
 // import raw from assets
 // @ts-ignore
@@ -100,6 +103,8 @@ const createServer = ({
     ignoreHTTPSErrors: false, // whether to ignore HTTPS errors during navigation
   };
 
+  const regexForVhValue: RegExp = /(\d+?)vh/g;
+
   app.get('/pdftron-proxy', async (req: Request, res: Response) => {
     // this is the url retrieved from the input
     const url: string = `${req.query.url}`;
@@ -169,12 +174,13 @@ const createServer = ({
               // some elements have undefined clientHeight
               // favor scrollHeight since clientHeight does not include padding
               if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight))
-                sum += el.scrollHeight || el.clientHeight;
+                sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
             }
           });
           return {
             width: document.body.scrollWidth || document.body.clientWidth || 1440,
-            height: sum,
+            // sum can be less than defaultViewport
+            height: sum > 770 ? sum : 770,
           };
         });
 
@@ -193,7 +199,7 @@ const createServer = ({
   // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest: Request, clientResponse: Response) => {
-    const cookiesUrl: string = `${clientRequest.cookies.pdftron_proxy_sid}`;
+    const cookiesUrl: string = clientRequest.cookies.pdftron_proxy_sid;
     // check again for all requests that go through the proxy server
     if (cookiesUrl && isValidURL(cookiesUrl, ALLOW_HTTP_PROXY)) {
       const {
@@ -203,10 +209,21 @@ const createServer = ({
         pathname
       } = getHostPortSSL(cookiesUrl);
 
+      let newHostName = parsedHost;
+      let newPath = clientRequest.url;
+
+      let externalURL = newPath.split('/?external-proxy=')[1];
+      if (externalURL) {
+        const { hostname, href, origin } = new URL(externalURL);
+        const hrefWithoutOrigin = href.split(origin)[1] || '';
+        newHostName = hostname;
+        newPath = hrefWithoutOrigin;
+      }
+
       const options: ProxyRequestOptions = {
-        hostname: parsedHost,
+        hostname: newHostName,
         port: parsedPort,
-        path: clientRequest.url,
+        path: newPath,
         method: clientRequest.method,
         insecureHTTPParser: true,
         rejectUnauthorized: true, // verify the server's identity
@@ -228,51 +245,132 @@ const createServer = ({
         serverResponse.headers['cross-origin-resource-policy'] = 'cross-origin';
         // 'require-corp' works fine on staging but doesn't on localhost: should use 'credentialless'
         serverResponse.headers['cross-origin-embedder-policy'] = 'credentialless';
+        serverResponse.headers['access-control-allow-origin'] = '*';
 
         // reset cache-control for https://www.keytrudahcp.com
         serverResponse.headers['cache-control'] = 'max-age=0, public, no-cache, no-store, must-revalidate';
         let body: string = '';
         // Send html content from the proxied url to the browser so that it can spawn new requests.
-        if (String(serverResponse.headers['content-type']).indexOf('text/html') !== -1) {
-          serverResponse.on('data', (chunk: string) => {
-            body += chunk;
-          });
+        const serverResponseContentType = serverResponse.headers['content-type'];
+        if (String(serverResponseContentType).indexOf('text/html') !== -1) {
+          serverResponse.on('data', (chunk: string) => body += chunk);
 
           serverResponse.on('end', () => {
+            const virtualDOM = new JSDOM(body);
+            const { window } = virtualDOM;
+            const { document } = window;
+            document.documentElement.style.setProperty('--vh', `${1050 * 0.01}px`);
+
+            document.querySelectorAll("link").forEach(el => {
+              const href = el.getAttribute('href');
+              if (!href) {
+                return;
+              }
+
+              // filter only CSS links
+              if (el.rel == "stylesheet" || el.type == "text/css" || href.endsWith('.css')) {
+                if (!el.dataset.pdftron && isURLAbsolute(href)) {
+                  // set this attibute to identify if <link> href has been modified
+                  el.setAttribute('data-href', href);
+
+                  const absoluteHref = getCorrectHref(href);
+                  try {
+                    const { hostname, href, origin } = new URL(absoluteHref);
+                    // pathname doesn't include query and hash; use href.split(origin) to preserve everything
+                    const hrefWithoutOrigin = href.split(origin)[1] || '';
+                    el.setAttribute('data-domain', hostname);
+                    // check if same domain with cookiesUrl
+                    if (hostname === parsedHost) {
+                      el.setAttribute('data-pdftron', 'same-domain');
+                      el.setAttribute('href', hrefWithoutOrigin);
+                    } else {
+                      // external URLs
+                      el.setAttribute('data-pdftron', 'different-domain');
+                      el.setAttribute('href', `${PATH}/?external-proxy=${absoluteHref}`);
+                      // fix for github Failed to find a valid digest in the integrity attribute
+                      if (el.getAttribute('integrity')) {
+                        el.setAttribute('integrity', '');
+                      }
+                    }
+                  } catch (e) {
+                    logger.error(e)
+                  }
+                }
+              }
+            });
+
+            let newBody = virtualDOM.serialize();
+
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
             const globalVarsScript = `<script type='text/javascript' id='pdftron-js'>window.PDFTron = {}; window.PDFTron.urlToProxy = '${cookiesUrl}';</script>`;
             const debounceScript = `<script type='text/javascript'>${debounceJS}</script>`;
             const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
             const textScript = `<script type='text/javascript'>${sendTextDataScript}</script>`;
 
-            const headIndex: number = body.indexOf('</head>');
+            const headIndex: number = newBody.indexOf('</head>');
             if (headIndex > 0) {
-              if (!/pdftron-css/.test(body)) {
-                body = body.slice(0, headIndex) + styleTag + body.slice(headIndex);
+              if (!/pdftron-css/.test(newBody)) {
+                newBody = newBody.slice(0, headIndex) + styleTag + newBody.slice(headIndex);
               }
 
-              if (!/pdftron-js/.test(body)) {
+              if (!/pdftron-js/.test(newBody)) {
                 // order: declare global var first, then debounce, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
-                body = body.slice(0, headIndex) + globalVarsScript + debounceScript + navigationScript + textScript + body.slice(headIndex);
+                newBody = newBody.slice(0, headIndex) + globalVarsScript + debounceScript + navigationScript + textScript + newBody.slice(headIndex);
               }
             }
 
             delete serverResponse.headers['content-length'];
             clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers);
-            clientResponse.end(body);
+            clientResponse.end(newBody);
           });
 
           serverResponse.on('error', (e) => {
             logger.error(e);
           });
+
+        } else if (String(serverResponseContentType).indexOf('text/css') !== -1) {
+          let cssContent: string = '';
+          let externalResponse: IncomingMessage | Gunzip = serverResponse;
+          const contentEncoding = serverResponse.headers['content-encoding'];
+
+          // https://stackoverflow.com/questions/62505328/decode-gzip-response-on-node-js-man-in-the-middle-proxy
+          if (contentEncoding?.toLowerCase().includes('gzip')) {
+            delete serverResponse.headers['content-encoding'];
+            externalResponse = createGunzip();
+            serverResponse.pipe(externalResponse);
+          }
+
+          externalResponse.on('data', (chunk: string) => cssContent += chunk);
+
+          externalResponse.on('end', () => {
+            if (regexForVhValue.test(cssContent)) {
+              cssContent = cssContent.replace(regexForVhValue, 'calc($1 * var(--vh))');
+              // need to update content-length after swapping vh values, only for gzip response
+              if (contentEncoding?.toLowerCase().includes('gzip')) {
+                serverResponse.headers['content-length'] = `${cssContent.length}`;
+              } else {
+                delete serverResponse.headers['content-length'];
+              }
+            }
+            // write will only append to existing clientResponse and needed to be piped
+            // use writeHead and end for http response
+            // use send for express response
+            clientResponse.writeHead(serverResponse.statusCode, serverResponse.headers).end(cssContent);
+            // clientResponse.set(serverResponse.headers).send(cssContent);
+          });
+
+          externalResponse.on('error', (e) => {
+            logger.error(e);
+          });
+
         } else {
           // Pipe the server response from the proxied url to the browser so that new requests can be spawned for non-html content (js/css/json etc.)
           serverResponse.pipe(clientResponse, {
             end: true,
           });
           // Can be undefined
-          if (serverResponse.headers['content-type']) {
-            clientResponse.contentType(serverResponse.headers['content-type'])
+          if (serverResponseContentType) {
+            clientResponse.contentType(serverResponseContentType)
           }
         }
       }

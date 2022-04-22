@@ -14,7 +14,7 @@ input[type="search"] {
 }
 
 /* for google voice icon and virginia lottery collapsible divs */
-div[role="button"]:not([aria-expanded]):active {
+div[role="button"]:not([aria-expanded]):not([aria-pressed]):active {
     pointer-events: none !important;
 }
 
