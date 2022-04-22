@@ -6,6 +6,8 @@ const onKeydownCallback = (e) => {
 
 const blockNavigation = () => {
   const { urlToProxy } = window.PDFTron;
+  const pageHeight = getPageHeight();
+  const pageWidth = 1440;
 
   // block navigation for suspicious <a> that don't have href or empty href: stubbing onclick
   // block navigation for all a tags that don't start with #  
@@ -29,6 +31,58 @@ const blockNavigation = () => {
         elem.onclick = null;
       }
     }
+
+    if (elem.hasChildNodes()) {
+      const elChildNodes = Array.from(elem.childNodes);
+      // check if childNodes has some that is an element and doesn't have data-pdftron
+      if (!elChildNodes.some(childEL => childEL.nodeType == Node.ELEMENT_NODE && childEL.dataset.pdftron == 'pdftron-link-popup')) {
+        elem.style.position = 'relative';
+
+        let div = document.createElement('div');
+        div.setAttribute('data-pdftron', 'pdftron-link-popup');
+        div.innerText = elem.getAttribute('href');
+
+        const elStyle = window.getComputedStyle(elem);
+        const {
+          x: elBoundingRectX,
+          y: elBoundingRectY,
+          width: elBoundingRectWidth,
+          height: elBoundingRectHeight
+        } = elem.getBoundingClientRect();
+        if ((elBoundingRectY + elBoundingRectHeight + 200) > pageHeight) {
+          div.style.bottom = `${elBoundingRectHeight}px`;
+        } else {
+          div.style.top = `${elBoundingRectHeight}px`;
+        }
+        if ((elBoundingRectX + 450) > pageWidth) {
+          div.style.right = elStyle.paddingRight;
+        } else {
+          div.style.left = elStyle.paddingLeft;
+        }
+
+        elem.appendChild(div);
+        elem.addEventListener('mouseenter', () => {
+          div.style.display = 'block';
+          // if the popup is not visible in the viewport then append on the top of the <a> tag
+        });
+
+        // fetch(elem.getAttribute('href'), { mode: 'no-cors' })
+        //   .then(response => {
+        //     return response.text();
+        //   }).then(text => {
+        //     console.log(text)
+        //     const domparser = new DOMParser();
+        //     const newDocument = domparser.parseFromString(text, 'text/html');
+        //     // console.log(newDocument.querySelector('meta[property="og:title"]').getAttribute('content'));
+        //   })
+        //   .catch(err => console.error(err));
+
+        elem.addEventListener('mouseleave', () => {
+          div.style.display = 'none';
+        });
+      }
+    }
+
   });
 
   // for all a tags that start with #, copy to data-href for WV link annotation

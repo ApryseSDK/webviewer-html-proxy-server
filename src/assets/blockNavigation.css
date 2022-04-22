@@ -3,6 +3,7 @@ button[type="submit"]:active {
 }
 
 /* search on amazon */
+/* label[for]:active, */
 input[type="submit"]:active,
 input[type="search"] {
     pointer-events: none !important;
@@ -21,4 +22,22 @@ div[role="button"]:not([aria-expanded]):not([aria-pressed]):active {
 /* for google dropdown search */
 li[role="presentation"]:active {
     pointer-events: none !important;
+}
+
+/* styling link preview popup */
+[data-pdftron='pdftron-link-popup'] {
+    font-family: inherit;
+    font-size: inherit;
+    color: #00a5e4; /* background is white color cannot be inherit (parent color might be white) */
+    background-color: white;
+    border-color: #dadce0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+    padding: 5px 10px;
+    position: absolute;
+    z-index: 1;
+    text-align: left;
+    max-width: 500px;
+    overflow-wrap: break-word;
+    display: none;
 }
