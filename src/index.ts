@@ -245,6 +245,7 @@ const createServer = ({
         serverResponse.headers['cross-origin-resource-policy'] = 'cross-origin';
         // 'require-corp' works fine on staging but doesn't on localhost: should use 'credentialless'
         serverResponse.headers['cross-origin-embedder-policy'] = 'credentialless';
+        serverResponse.headers['access-control-allow-origin'] = '*';
 
         // reset cache-control for https://www.keytrudahcp.com
         serverResponse.headers['cache-control'] = 'max-age=0, public, no-cache, no-store, must-revalidate';
