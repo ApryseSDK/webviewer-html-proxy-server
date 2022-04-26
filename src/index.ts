@@ -68,7 +68,17 @@ const createServer = ({
   const logger = createLogger({
     format: combine(
       timestamp({
-        format: "YYYY-MM-DD HH:mm:ss"
+        format: () => {
+          return new Date().toLocaleString('en-US', {
+            timeZone: 'America/Vancouver',
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          });
+        }
       }),
       align(),
       printf(
