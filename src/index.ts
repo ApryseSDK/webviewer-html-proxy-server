@@ -196,6 +196,39 @@ const createServer = ({
     }
   });
 
+  app.get('/pdftron-test', async (req: Request, res: Response) => {
+    const linkToPreview: string = `${req.query.url}`;
+    console.log('linkToPreview', linkToPreview)
+
+    const browser = await puppeteer.launch(puppeteerOptions);
+    try {
+      const page = await browser.newPage();
+      // page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+      await page.goto(linkToPreview, {
+        waitUntil: 'domcontentloaded',
+      });
+      const selector = `link[rel="icon"]`
+      // , `link[rel="shortcut icon"]`];
+      const pageTitle = await page.title();
+
+      const faviconUrl = await page.evaluate((q) => {
+        const elem = document.querySelector(q);
+        if (elem && elem.getAttribute('href')) {
+          return elem.href;
+        } else {
+          return "";
+        }
+      }, selector);
+
+      res.status(200).send({ pageTitle, faviconUrl });
+    } catch (err) {
+      logger.error(`Puppeteer ${linkToPreview}`, err);
+      res.sendStatus(400);
+    } finally {
+      browser.close();
+    }
+  });
+
   // TODO: detect when websites cannot be fetched
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest: Request, clientResponse: Response) => {

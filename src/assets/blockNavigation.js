@@ -8,6 +8,7 @@ const blockNavigation = () => {
   const { urlToProxy } = window.PDFTron;
   const pageHeight = getPageHeight();
   const pageWidth = 1440;
+  const { origin } = new URL(window.location);
 
   // block navigation for suspicious <a> that don't have href or empty href: stubbing onclick
   // block navigation for all a tags that don't start with #  
@@ -50,6 +51,7 @@ const blockNavigation = () => {
           height: elBoundingRectHeight
         } = elem.getBoundingClientRect();
         if ((elBoundingRectY + elBoundingRectHeight + 200) > pageHeight) {
+          // if the popup is not visible in the viewport then append on the top of the <a> tag
           div.style.bottom = `${elBoundingRectHeight}px`;
         } else {
           div.style.top = `${elBoundingRectHeight}px`;
@@ -63,8 +65,16 @@ const blockNavigation = () => {
         elem.appendChild(div);
         elem.addEventListener('mouseenter', () => {
           div.style.display = 'block';
-          // if the popup is not visible in the viewport then append on the top of the <a> tag
-        });
+          fetch(`${origin}/pdftron-test?url=${elem.getAttribute('href')}`)
+            .then(res => res.json())
+            .then(json => {
+              div.innerHTML = `
+                ${elem.getAttribute('href')};
+                <img src="${json.faviconUrl}">${json.pageTitle}
+              `;
+            })
+            .catch(e => console.error(e))
+        }, false);
 
         // fetch(elem.getAttribute('href'), { mode: 'no-cors' })
         //   .then(response => {
@@ -79,7 +89,7 @@ const blockNavigation = () => {
 
         elem.addEventListener('mouseleave', () => {
           div.style.display = 'none';
-        });
+        }, false);
       }
     }
 
