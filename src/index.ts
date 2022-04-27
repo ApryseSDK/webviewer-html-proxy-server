@@ -68,7 +68,17 @@ const createServer = ({
   const logger = createLogger({
     format: combine(
       timestamp({
-        format: "YYYY-MM-DD HH:mm:ss"
+        format: () => {
+          return new Date().toLocaleString('en-US', {
+            timeZone: 'America/Vancouver',
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          });
+        }
       }),
       align(),
       printf(
@@ -102,6 +112,8 @@ const createServer = ({
     headless: true,
     ignoreHTTPSErrors: false, // whether to ignore HTTPS errors during navigation
   };
+
+  const defaultViewportHeightForVH: number = 1050;
 
   const regexForVhValue: RegExp = /(\d+?)vh/g;
 
@@ -259,9 +271,9 @@ const createServer = ({
             const virtualDOM = new JSDOM(body);
             const { window } = virtualDOM;
             const { document } = window;
-            document.documentElement.style.setProperty('--vh', `${1050 * 0.01}px`);
+            document.documentElement.style.setProperty('--vh', `${defaultViewportHeightForVH * 0.01}px`);
 
-            document.querySelectorAll("link").forEach(el => {
+            document.querySelectorAll('link').forEach(el => {
               const href = el.getAttribute('href');
               if (!href) {
                 return;
@@ -296,6 +308,13 @@ const createServer = ({
                     logger.error(e)
                   }
                 }
+              }
+            });
+
+            // replace vh values in inline styles
+            document.querySelectorAll('style').forEach(el => {
+              if (regexForVhValue.test(el.innerHTML)) {
+                el.innerHTML = el.innerHTML.replace(regexForVhValue, 'calc($1 * var(--vh))');
               }
             });
 

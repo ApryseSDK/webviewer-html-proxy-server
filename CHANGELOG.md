@@ -1,3 +1,8 @@
+## 1.8.0 (2022-04-26)
+
+- Added Webpack, TypeScript and JSDoc
+- Added a fix for websites that use CSS viewport units
+
 ## 1.7.1 (2022-04-08)
 
 - Improved page height calculation
