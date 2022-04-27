@@ -36,7 +36,7 @@ const blockNavigation = () => {
     if (elem.hasChildNodes()) {
       const elChildNodes = Array.from(elem.childNodes);
       // check if childNodes has some that is an element and doesn't have data-pdftron
-      if (!elChildNodes.some(childEL => childEL.nodeType == Node.ELEMENT_NODE && childEL.dataset.pdftron == 'pdftron-link-popup')) {
+      if (!elChildNodes.some(childEL => childEL.nodeType === Node.ELEMENT_NODE && childEL.dataset.pdftron === 'pdftron-link-popup')) {
         elem.style.position = 'relative';
 
         let div = document.createElement('div');
@@ -63,18 +63,26 @@ const blockNavigation = () => {
         }
 
         elem.appendChild(div);
-        elem.addEventListener('mouseenter', () => {
+        elem.onmouseenter = async () => {
           div.style.display = 'block';
-          fetch(`${origin}/pdftron-test?url=${elem.getAttribute('href')}`)
-            .then(res => res.json())
-            .then(json => {
-              div.innerHTML = `
-                ${elem.getAttribute('href')};
-                <img src="${json.faviconUrl}">${json.pageTitle}
-              `;
-            })
-            .catch(e => console.error(e))
-        }, false);
+          if (div.dataset.pdftronpreview !== 'pdftron-link-fullpreview') {
+            try {
+              const linkPreviewRes = await fetch(`${origin}/pdftron-link-preview?url=${elem.getAttribute('href')}`);
+              if (linkPreviewRes.status === 400) {
+              } else {
+                const linkPreviewResJson = await linkPreviewRes.json();
+                const { faviconUrl, pageTitle } = linkPreviewResJson;
+                div.setAttribute('data-pdftronpreview', 'pdftron-link-fullpreview');
+                div.innerHTML = `
+                  ${elem.getAttribute('href')}
+                  <img class="link-preview-favicon" src="${faviconUrl}">${pageTitle}
+                `;
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        };
 
         // fetch(elem.getAttribute('href'), { mode: 'no-cors' })
         //   .then(response => {
@@ -87,9 +95,9 @@ const blockNavigation = () => {
         //   })
         //   .catch(err => console.error(err));
 
-        elem.addEventListener('mouseleave', () => {
+        elem.onmouseleave = () => {
           div.style.display = 'none';
-        }, false);
+        };
       }
     }
 

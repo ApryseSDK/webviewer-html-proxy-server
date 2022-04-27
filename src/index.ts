@@ -196,7 +196,7 @@ const createServer = ({
     }
   });
 
-  app.get('/pdftron-test', async (req: Request, res: Response) => {
+  app.get('/pdftron-link-preview', async (req: Request, res: Response) => {
     const linkToPreview: string = `${req.query.url}`;
     console.log('linkToPreview', linkToPreview)
 
