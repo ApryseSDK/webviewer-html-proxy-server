@@ -71,11 +71,13 @@ const blockNavigation = () => {
               if (linkPreviewRes.status === 400) {
               } else {
                 const linkPreviewResJson = await linkPreviewRes.json();
-                const { faviconUrl, pageTitle } = linkPreviewResJson;
+                const { faviconUrl, pageTitle, metaDescription } = linkPreviewResJson;
                 div.setAttribute('data-pdftronpreview', 'pdftron-link-fullpreview');
                 div.innerHTML = `
-                  ${elem.getAttribute('href')}
-                  <img class="link-preview-favicon" src="${faviconUrl}">${pageTitle}
+                  ${elem.getAttribute('href')}<br>
+                  ${pageTitle}<br>
+                  ${metaDescription}
+                  <img class="link-preview-favicon" src="${faviconUrl}">
                 `;
               }
             } catch (e) {
@@ -83,17 +85,6 @@ const blockNavigation = () => {
             }
           }
         };
-
-        // fetch(elem.getAttribute('href'), { mode: 'no-cors' })
-        //   .then(response => {
-        //     return response.text();
-        //   }).then(text => {
-        //     console.log(text)
-        //     const domparser = new DOMParser();
-        //     const newDocument = domparser.parseFromString(text, 'text/html');
-        //     // console.log(newDocument.querySelector('meta[property="og:title"]').getAttribute('content'));
-        //   })
-        //   .catch(err => console.error(err));
 
         elem.onmouseleave = () => {
           div.style.display = 'none';

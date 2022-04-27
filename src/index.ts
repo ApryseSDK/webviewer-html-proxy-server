@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import puppeteer from 'puppeteer';
 import cookieParser from 'cookie-parser';
+import nodeFetch from 'node-fetch';
 import type { ClientRequest, IncomingMessage } from 'http';
 import type { Request, Response } from 'express';
 import { createLogger, format, transports } from 'winston';
@@ -200,32 +201,24 @@ const createServer = ({
     const linkToPreview: string = `${req.query.url}`;
     console.log('linkToPreview', linkToPreview)
 
-    const browser = await puppeteer.launch(puppeteerOptions);
     try {
-      const page = await browser.newPage();
-      // page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-      await page.goto(linkToPreview, {
-        waitUntil: 'domcontentloaded',
-      });
-      const selector = `link[rel="icon"]`
-      // , `link[rel="shortcut icon"]`];
-      const pageTitle = await page.title();
+      const page = await nodeFetch(linkToPreview);
+      const virtualDOM = new JSDOM(await page.text());
+      const { window } = virtualDOM;
+      const { document } = window;
 
-      const faviconUrl = await page.evaluate((q) => {
-        const elem = document.querySelector(q);
-        if (elem && elem.getAttribute('href')) {
-          return elem.href;
-        } else {
-          return "";
-        }
-      }, selector);
+      const pageTitle: string = document.title;
 
-      res.status(200).send({ pageTitle, faviconUrl });
+      const faviconSelectors: NodeListOf<HTMLLinkElement> = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
+      const faviconUrl = faviconSelectors.length > 0 ? (faviconSelectors[0].href || '') : '';
+
+      const metaSelectors: NodeListOf<HTMLMetaElement> = document.querySelectorAll('meta[name="description"], meta[property="og:description"]');
+      const metaDescription = metaSelectors.length > 0 ? (metaSelectors[0].content || '') : '';
+
+      res.status(200).send({ pageTitle, faviconUrl, metaDescription });
     } catch (err) {
-      logger.error(`Puppeteer ${linkToPreview}`, err);
+      logger.error(`node-fetch link-preview ${linkToPreview}`, err);
       res.sendStatus(400);
-    } finally {
-      browser.close();
     }
   });
 
