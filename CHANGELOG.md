@@ -1,4 +1,4 @@
-## 1.8.0 (2022-04-26)
+## 1.7.2 (2022-04-27)
 
 - Added Webpack, TypeScript and JSDoc
 - Added a fix for websites that use CSS viewport units
