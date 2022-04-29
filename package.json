@@ -1,6 +1,6 @@
 {
   "name": "@pdftron/webviewer-html-proxy-server",
-  "version": "1.7.2",
+  "version": "1.8.0",
   "description": "This is a proxy server to use with @pdftron/webviewer-html",
   "main": "dist/main.js",
   "author": "PDFTron Systems Inc.",
