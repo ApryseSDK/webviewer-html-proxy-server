@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import puppeteer from 'puppeteer';
 import cookieParser from 'cookie-parser';
+import nodeFetch from 'node-fetch';
 import type { ClientRequest, IncomingMessage } from 'http';
 import type { Request, Response } from 'express';
 import { createLogger, format, transports } from 'winston';
@@ -180,7 +181,7 @@ const createServer = ({
             if (el.nodeType == Node.ELEMENT_NODE) {
               const style = window.getComputedStyle(el);
               // filter hidden/collapsible elements 
-              if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == '0') {
+              if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == '0' || style.position == 'fixed' || style.position == 'absolute') {
                 return;
               }
               // some elements have undefined clientHeight
@@ -205,6 +206,31 @@ const createServer = ({
       } finally {
         browser.close();
       }
+    }
+  });
+
+  app.get('/pdftron-link-preview', async (req: Request, res: Response) => {
+    const linkToPreview: string = `${req.query.url}`;
+    console.log('linkToPreview', linkToPreview)
+
+    try {
+      const page = await nodeFetch(linkToPreview);
+      const virtualDOM = new JSDOM(await page.text());
+      const { window } = virtualDOM;
+      const { document } = window;
+
+      const pageTitle: string = document.title;
+
+      const faviconSelectors: NodeListOf<HTMLLinkElement> = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
+      const faviconUrl = faviconSelectors.length > 0 ? (faviconSelectors[0].href || '') : '';
+
+      const metaSelectors: NodeListOf<HTMLMetaElement> = document.querySelectorAll('meta[name="description"], meta[property="og:description"]');
+      const metaDescription = metaSelectors.length > 0 ? (metaSelectors[0].content || '') : '';
+
+      res.status(200).send({ pageTitle, faviconUrl, metaDescription });
+    } catch (err) {
+      logger.error(`node-fetch link-preview ${linkToPreview}`, err);
+      res.sendStatus(400);
     }
   });
 

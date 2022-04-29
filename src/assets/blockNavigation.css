@@ -3,6 +3,7 @@ button[type="submit"]:active {
 }
 
 /* search on amazon */
+/* label[for]:active, */
 input[type="submit"]:active,
 input[type="search"] {
     pointer-events: none !important;
@@ -21,4 +22,43 @@ div[role="button"]:not([aria-expanded]):not([aria-pressed]):active {
 /* for google dropdown search */
 li[role="presentation"]:active {
     pointer-events: none !important;
+}
+
+/* styling link preview popup */
+[data-pdftron='pdftron-link-popup'] {
+    font-family: inherit;
+    font-size: 75%;
+    line-height: 1.25;
+    /* background is white color cannot be inherit (parent color might be white) */
+    color: #00a5e4;
+    background-color: white;
+    border-color: #dadce0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+    /* visibility: hidden; */
+    padding: 5px 10px;
+    position: absolute;
+    z-index: 1;
+    text-align: left;
+    min-width: 300px;;
+    max-width: 750px;
+    overflow-wrap: break-word;
+    display: none;
+}
+
+[data-pdftron='pdftron-main-popup'] {
+    font-family: inherit;
+    font-size: inherit;
+    color: #00a5e4;
+    background-color: white;
+    border-color: #dadce0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+    position: absolute;
+    z-index: 1000000000;
+    padding: 5px 10px;
+    text-align: left;
+    max-width: 500px;
+    overflow-wrap: break-word;
+    display: none;
 }
