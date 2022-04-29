@@ -10,6 +10,12 @@ const blockNavigation = () => {
   const pageWidth = 1440;
   const { origin } = new URL(window.location);
 
+  // if (!document.querySelector('[data-pdftron="pdftron-main-popup"]')) {
+  //   let mainPopup = document.createElement('div');
+  //   mainPopup.setAttribute('data-pdftron', 'pdftron-main-popup');
+  //   document.body.appendChild(mainPopup);
+  // }
+
   // block navigation for suspicious <a> that don't have href or empty href: stubbing onclick
   // block navigation for all a tags that don't start with #  
   document.querySelectorAll('a:not([href]), a[href=""], a[href]:not([href^="#"]):not([href="javascript: void(0)"])').forEach(elem => {
@@ -41,9 +47,8 @@ const blockNavigation = () => {
 
         let div = document.createElement('div');
         div.setAttribute('data-pdftron', 'pdftron-link-popup');
-        div.innerText = elem.getAttribute('href');
+        div.innerHTML = `<span style="color:black">URL: </span>${elem.getAttribute('href')}`;
 
-        const elStyle = window.getComputedStyle(elem);
         const {
           x: elBoundingRectX,
           y: elBoundingRectY,
@@ -57,14 +62,23 @@ const blockNavigation = () => {
           div.style.top = `${elBoundingRectHeight}px`;
         }
         if ((elBoundingRectX + 450) > pageWidth) {
-          div.style.right = elStyle.paddingRight;
+          div.style.right = 0;
         } else {
-          div.style.left = elStyle.paddingLeft;
+          div.style.left = 0;
         }
+
+        // let mainPopup = document.querySelector('[data-pdftron="pdftron-main-popup"]');
 
         elem.appendChild(div);
         elem.onmouseenter = async () => {
+          // mainPopup.innerHTML = div.innerHTML;
           div.style.display = 'block';
+          // const { top, left, bottom, right } = div.getBoundingClientRect();
+          // mainPopup.style.top = `${top}px`;
+          // mainPopup.style.left = `${left}px`;
+          // mainPopup.style.display = 'block';
+          // mainPopup.style.bottom = `${bottom}px`;
+          // mainPopup.style.right = `${right}px`;
           if (div.dataset.pdftronpreview !== 'pdftron-link-fullpreview') {
             try {
               const linkPreviewRes = await fetch(`${origin}/pdftron-link-preview?url=${elem.getAttribute('href')}`);
@@ -74,11 +88,14 @@ const blockNavigation = () => {
                 const { faviconUrl, pageTitle, metaDescription } = linkPreviewResJson;
                 div.setAttribute('data-pdftronpreview', 'pdftron-link-fullpreview');
                 div.innerHTML = `
-                  ${elem.getAttribute('href')}<br>
+                <span style="color:black">URL: </span>${elem.getAttribute('href')}
+                <div style="display: flex; align-items: center; margin-top: 5px; color: black;">
+                  <img class="link-preview-favicon" style="margin-right: 5px; margin-bottom: 2px;" width="20" src="${faviconUrl}">
                   ${pageTitle}<br>
-                  ${metaDescription}
-                  <img class="link-preview-favicon" src="${faviconUrl}">
+                </div>
+                <div style="color: black; margin-top: 5px;">${metaDescription}</div>
                 `;
+                // mainPopup.innerHTML = div.innerHTML;
               }
             } catch (e) {
               console.error(e);
@@ -88,6 +105,7 @@ const blockNavigation = () => {
 
         elem.onmouseleave = () => {
           div.style.display = 'none';
+          // mainPopup.style.display = 'none';
         };
       }
     }
