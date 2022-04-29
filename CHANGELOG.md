@@ -1,3 +1,7 @@
+## 1.8.0 (2022-04-29)
+
+- Added link previews on hover
+
 ## 1.7.2 (2022-04-27)
 
 - Added Webpack, TypeScript and JSDoc
