@@ -1,7 +1,7 @@
 const debounceJS = (func, wait, leading) => {
   let timeout = null;
   return (...args) => {
-    let callNow = leading && !timeout;
+    const callNow = leading && !timeout;
     clearTimeout(timeout);
 
     timeout = setTimeout(() => {
@@ -10,7 +10,8 @@ const debounceJS = (func, wait, leading) => {
         func.apply(null, args);
       }
     }, wait);
-    if (callNow)
+    if (callNow) {
       func.apply(null, args);
-  }
-}
+    }
+  };
+};

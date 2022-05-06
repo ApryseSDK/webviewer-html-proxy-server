@@ -1,12 +1,13 @@
 const getTextData = (body) => {
   const traverseTextNode = (parentNode, struct, offsets, quads, str, linksArray) => {
     const range = document.createRange();
-    parentNode.childNodes.forEach(child => {
-      if (isInvalidNode(child))
+    parentNode.childNodes.forEach((child) => {
+      if (isInvalidNode(child)) {
         return;
-      if (child.nodeType == Node.ELEMENT_NODE) {
+      }
+      if (child.nodeType === Node.ELEMENT_NODE) {
         const style = window.getComputedStyle(child);
-        if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == 0) {
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === 0) {
           return;
         }
       }
@@ -19,9 +20,10 @@ const getTextData = (body) => {
       if (child.nodeType === Node.TEXT_NODE) {
         const cText = child.textContent;
         const cTextLength = cText.length;
-        const isValidText = Array.from(cText).filter(c => !(c === '\n' || c === ' ' || c === '\t')).length > 0;
-        if (cTextLength === 0 || !isValidText)
+        const isValidText = Array.from(cText).filter((c) => !(c === '\n' || c === ' ' || c === '\t')).length > 0;
+        if (cTextLength === 0 || !isValidText) {
           return;
+        }
 
         const cQuads = [];
         const origQuadsOffset = quads.length / 8;
@@ -126,60 +128,59 @@ const getTextData = (body) => {
       }
     });
     return str;
-  }
+  };
 
   const struct = [0];
   const offsets = [];
   const quads = [];
   const linksArray = [];
-  const str = traverseTextNode(body, struct, offsets, quads, "", linksArray);
+  const str = traverseTextNode(body, struct, offsets, quads, '', linksArray);
 
   return { selectionData: { struct, str, offsets, quads }, linkData: linksArray };
-}
+};
 
 const isInvalidNode = (node) => {
   return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
-}
+};
 
 const getPageHeight = () => {
   let sum = 0;
   // for some web pages, <html> and <body> have height: 100%
   // sum up the <body> children's height for an accurate page height
   // example: when page expands and then shrinks, <body> height will not reflect this change since it's 100% (which is the iframe height)
-  document.body.childNodes.forEach(el => {
-    if (el.nodeType == Node.ELEMENT_NODE) {
+  document.body.childNodes.forEach((el) => {
+    if (el.nodeType === Node.ELEMENT_NODE) {
       const style = window.getComputedStyle(el);
-      // filter hidden/collapsible elements 
-      if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == '0' || style.position == 'fixed' || style.position == 'absolute') {
+      // filter hidden/collapsible elements
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0' || style.position === 'fixed' || style.position === 'absolute') {
         return;
       }
       // some elements have undefined clientHeight
       // favor scrollHeight since clientHeight does not include padding
-      if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight))
+      if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight)) {
         sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
-
+      }
     }
   });
   return sum;
-
-}
+};
 
 const getClientUrl = () => {
   const { origin } = new URL(document.referrer);
   return origin;
-}
+};
 
 const sendDataToClient = () => {
   const { selectionData, linkData } = getTextData(document.body);
   const iframeHeight = getPageHeight();
   window.parent.postMessage({ selectionData, linkData, iframeHeight }, getClientUrl());
-}
+};
 
 const debounceSendDataOnMutation = debounceJS(sendDataToClient, 500, false);
 const debounceSendDataOnTransition = debounceJS(sendDataToClient, 50, false);
 
-window.addEventListener('message', e => {
-  if (e.origin == getClientUrl() && e.data == 'loadTextData') {
+window.addEventListener('message', (e) => {
+  if (e.origin === getClientUrl() && e.data === 'loadTextData') {
     sendDataToClient();
   }
 });
@@ -187,7 +188,7 @@ window.addEventListener('message', e => {
 document.addEventListener('DOMContentLoaded', () => {
   sendDataToClient();
 
-  const observer = new MutationObserver((m, o) => {
+  const observer = new MutationObserver(() => {
     debounceSendDataOnMutation();
   });
   observer.observe(document.body, {
@@ -200,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.addEventListener('transitionend', () => {
   debounceSendDataOnTransition();
-})
+});
 
 // e.source from eventListener "message" is the host page, window.top
 // use window.parent.postMessage() instead of e.source.postMessage() to communicate back to WV
