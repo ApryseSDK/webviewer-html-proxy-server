@@ -87,13 +87,12 @@ const blockNavigation = () => {
                 const linkPreviewResJson = await linkPreviewRes.json();
                 const { faviconUrl, pageTitle, metaDescription } = linkPreviewResJson;
                 div.setAttribute('data-pdftronpreview', 'pdftron-link-fullpreview');
+                let faviconDiv = faviconUrl ? `<img class="link-preview-favicon" style="margin-right: 5px; margin-bottom: 2px;" width="20" src="${faviconUrl}">` : '';
+                let metaDiv = metaDescription ? `<div style="color: black; margin-top: 5px;">${metaDescription}</div>` : '';
                 div.innerHTML = `
-                <span style="color:black">URL: </span>${elem.getAttribute('href')}
-                <div style="display: flex; align-items: center; margin-top: 5px; color: black;">
-                  <img class="link-preview-favicon" style="margin-right: 5px; margin-bottom: 2px;" width="20" src="${faviconUrl}">
-                  ${pageTitle}<br>
-                </div>
-                <div style="color: black; margin-top: 5px;">${metaDescription}</div>
+                  <span style="color: black">URL: </span>${elem.getAttribute('href')}
+                  <div style="display: flex; align-items: center; margin-top: 5px; color: black;">${faviconDiv}${pageTitle}</div>
+                  ${metaDiv}
                 `;
                 // mainPopup.innerHTML = div.innerHTML;
               }
@@ -101,6 +100,7 @@ const blockNavigation = () => {
               console.error(e);
             }
           }
+          div.scrollIntoViewIfNeeded();
         };
 
         elem.onmouseleave = () => {
