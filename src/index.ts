@@ -7,7 +7,7 @@ import nodeFetch from 'node-fetch';
 import type { ClientRequest, IncomingMessage } from 'http';
 import type { Request, Response } from 'express';
 import { createLogger, format, transports } from 'winston';
-import { JSDOM } from 'jsdom';
+import { JSDOM, VirtualConsole } from 'jsdom';
 import { Gunzip, createGunzip } from 'zlib';
 
 // import from data types
@@ -252,8 +252,8 @@ const createServer = ({
 
       let externalURL = newPath.split('/?external-proxy=')[1];
       if (externalURL) {
-        const { hostname, href, origin } = new URL(externalURL);
-        const hrefWithoutOrigin = href.split(origin)[1] || '';
+        const { hostname, href, origin, pathname: externalURLPathName } = new URL(externalURL);
+        const hrefWithoutOrigin = href.split(origin)[1] || externalURLPathName;
         newHostName = hostname;
         newPath = hrefWithoutOrigin;
       }
@@ -294,7 +294,12 @@ const createServer = ({
           serverResponse.on('data', (chunk: string) => body += chunk);
 
           serverResponse.on('end', () => {
-            const virtualDOM = new JSDOM(body);
+            const virtualConsole = new VirtualConsole();
+            virtualConsole.on("error", () => {
+              // No-op to skip console errors. https://github.com/jsdom/jsdom/issues/2230
+            });
+
+            const virtualDOM = new JSDOM(body, { virtualConsole });
             const { window } = virtualDOM;
             const { document } = window;
             document.documentElement.style.setProperty('--vh', `${defaultViewportHeightForVH * 0.01}px`);
@@ -313,9 +318,9 @@ const createServer = ({
 
                   const absoluteHref = getCorrectHref(href);
                   try {
-                    const { hostname, href, origin } = new URL(absoluteHref);
+                    const { hostname, href, origin, pathname } = new URL(absoluteHref);
                     // pathname doesn't include query and hash; use href.split(origin) to preserve everything
-                    const hrefWithoutOrigin = href.split(origin)[1] || '';
+                    const hrefWithoutOrigin = href.split(origin)[1] || pathname;
                     el.setAttribute('data-domain', hostname);
                     // check if same domain with cookiesUrl
                     if (hostname === parsedHost) {
@@ -343,6 +348,25 @@ const createServer = ({
                 el.innerHTML = el.innerHTML.replace(regexForVhValue, 'calc($1 * var(--vh))');
               }
             });
+
+            const traverseNode = (parentNode: HTMLElement) => {
+              parentNode.childNodes.forEach((child: HTMLElement) => {
+                // Node.ELEMENT_NODE = 1; Node.TEXT_NODE = 3
+                if (child.nodeType === 1) {
+                  // var(--vh) doesn't work in JSDOM
+                  if (child.style.height && regexForVhValue.test(child.style.height))
+                    child.style.height = child.style.height.replace(regexForVhValue, '$10px');
+                  if (child.style.minHeight && regexForVhValue.test(child.style.minHeight))
+                    child.style.minHeight = child.style.minHeight.replace(regexForVhValue, '$10px');
+                }
+
+                if (child.nodeType !== 3) {
+                  traverseNode(child);
+                }
+              })
+            }
+
+            traverseNode(document.body);
 
             let newBody = virtualDOM.serialize();
 
