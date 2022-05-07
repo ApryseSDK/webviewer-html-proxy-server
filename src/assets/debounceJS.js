@@ -1,3 +1,4 @@
+/* eslint-disable-next-line */
 const debounceJS = (func, wait, leading) => {
   let timeout = null;
   return (...args) => {
