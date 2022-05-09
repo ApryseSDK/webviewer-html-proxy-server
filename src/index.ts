@@ -324,7 +324,7 @@ const createServer = ({
                     } else {
                       // external URLs
                       el.setAttribute('data-pdftron', 'different-domain');
-                      el.setAttribute('href', `${PATH}/?external-proxy=${absoluteHref}`);
+                      el.setAttribute('href', `/?external-proxy=${absoluteHref}`);
                       // fix for github Failed to find a valid digest in the integrity attribute
                       if (el.getAttribute('integrity')) {
                         el.setAttribute('integrity', '');
