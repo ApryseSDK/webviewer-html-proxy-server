@@ -1,3 +1,8 @@
+## 1.8.1 (2022-?-?)
+
+- Added eslint-typescript
+- Updated puppeteer to v14.0.0
+
 ## 1.8.0 (2022-04-29)
 
 - Added link previews on hover
