@@ -4,6 +4,10 @@ const onKeydownCallback = (e) => {
   }
 };
 
+const isURLAbsolute = (url) => {
+  return url.indexOf('://') > 0 || url.indexOf('//') === 0;
+};
+
 const blockNavigation = () => {
   const { urlToProxy } = window.PDFTron;
   const pageHeight = getPageHeight();
@@ -18,7 +22,11 @@ const blockNavigation = () => {
 
   // block navigation for suspicious <a> that don't have href or empty href: stubbing onclick
   // block navigation for all a tags that don't start with #
-  document.querySelectorAll('a:not([href]), a[href=""], a[href]:not([href^="#"]):not([href="javascript: void(0)"])').forEach((elem) => {
+  document.querySelectorAll(`
+      a:not([href]), 
+      a[href=""], 
+      a[href]:not([href^="#"]):not([href^="tel:"]):not([href^="sms:"]):not([href^="mailto:"]):not([href^="javascript:"])
+    `).forEach((elem) => {
     // in subsequent debouncing, make sure to only run this for new <a>
     if (elem.dataset.pdftron !== 'pdftron') {
       // set this attibute to identify if <a> href has been modified
@@ -39,7 +47,7 @@ const blockNavigation = () => {
       }
     }
 
-    if (elem.hasChildNodes()) {
+    if (isURLAbsolute(elem.href) && elem.hasChildNodes()) {
       const elChildNodes = Array.from(elem.childNodes);
       // check if childNodes has some that is an element and doesn't have data-pdftron
       if (!elChildNodes.some((childEL) => childEL.nodeType === Node.ELEMENT_NODE && childEL.dataset.pdftron === 'pdftron-link-popup')) {
@@ -47,7 +55,7 @@ const blockNavigation = () => {
 
         const div = document.createElement('div');
         div.setAttribute('data-pdftron', 'pdftron-link-popup');
-        div.innerHTML = `<span style="color:black">URL: </span>${elem.getAttribute('href')}`;
+        div.innerHTML = `URL: <span style="color: #00a5e4">${elem.getAttribute('href')}</span>`;
 
         const {
           x: elBoundingRectX,
@@ -60,11 +68,30 @@ const blockNavigation = () => {
         } else {
           div.style.top = `${elBoundingRectHeight}px`;
         }
-        if ((elBoundingRectX + 450) > pageWidth) {
+        if ((elBoundingRectX + 500) > pageWidth) {
           div.style.right = 0;
         } else {
           div.style.left = 0;
         }
+
+        let count = 0;
+        const traverseToParentWithOverflowHidden = (linkElement) => {
+          count += 1;
+          const parentElement = linkElement.parentElement;
+          if (parentElement.nodeType === Node.ELEMENT_NODE) {
+            const parentStyle = window.getComputedStyle(parentElement);
+            if (count > 3) {
+              return;
+            }
+            if (parentStyle.overflow === 'hidden') {
+              parentElement.style.overflow = 'visible';
+            } else {
+              traverseToParentWithOverflowHidden(parentElement);
+            }
+          }
+        };
+
+        traverseToParentWithOverflowHidden(elem);
 
         // let mainPopup = document.querySelector('[data-pdftron="pdftron-main-popup"]');
 
@@ -86,19 +113,21 @@ const blockNavigation = () => {
                 const { faviconUrl, pageTitle, metaDescription } = linkPreviewResJson;
                 div.setAttribute('data-pdftronpreview', 'pdftron-link-fullpreview');
                 const faviconDiv = faviconUrl ? `<img class="link-preview-favicon" style="margin-right: 5px; margin-bottom: 2px;" width="20" src="${faviconUrl}">` : '';
-                const metaDiv = metaDescription ? `<div style="color: black; margin-top: 5px;">${metaDescription}</div>` : '';
+                const metaDiv = metaDescription ? `<div style="margin-top: 5px;">${metaDescription}</div>` : '';
+                const noInformationDiv = !faviconUrl && !pageTitle && !metaDiv ? '<div style="font-style: italic;">No information was retrieved from this URL</div' : '';
                 div.innerHTML = `
-                  <span style="color: black">URL: </span>${elem.getAttribute('href')}
-                  <div style="display: flex; align-items: center; margin-top: 5px; color: black;">${faviconDiv}${pageTitle}</div>
+                  URL: <span style="color: #00a5e4">${elem.getAttribute('href')}</span>
+                  <div style="display: flex; flex-flow: row nowrap; align-items: center; margin-top: 5px;">${faviconDiv}${pageTitle}</div>
                   ${metaDiv}
+                  ${noInformationDiv}
                 `;
                 // mainPopup.innerHTML = div.innerHTML;
               }
-            } catch (e) {
-              console.error(e);
+            } catch (err) {
+              console.error('Link preview', elem.getAttribute('href'), err);
             }
           }
-          div.scrollIntoViewIfNeeded();
+          // div.scrollIntoViewIfNeeded();
         };
 
         elem.onmouseleave = () => {

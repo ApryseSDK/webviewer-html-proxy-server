@@ -27,10 +27,12 @@ li[role="presentation"]:active {
 /* styling link preview popup */
 [data-pdftron='pdftron-link-popup'] {
     font-family: inherit;
-    font-size: 75%;
+    font-size: 11px;
+    text-transform: initial;
+    font-weight: 400;
     line-height: 1.25;
     /* background is white color cannot be inherit (parent color might be white) */
-    color: #00a5e4;
+    color: #000;
     background-color: white;
     border-color: #dadce0;
     border-radius: 8px;
@@ -38,11 +40,12 @@ li[role="presentation"]:active {
     /* visibility: hidden; */
     padding: 5px 10px;
     position: absolute;
-    z-index: 1;
+    z-index: 1000000;
     text-align: left;
-    min-width: 300px;;
+    min-width: 300px;
     max-width: 750px;
     overflow-wrap: break-word;
+    white-space: normal;
     display: none;
 }
 
@@ -60,5 +63,6 @@ li[role="presentation"]:active {
     text-align: left;
     max-width: 500px;
     overflow-wrap: break-word;
+    white-space: normal;
     display: none;
 }
