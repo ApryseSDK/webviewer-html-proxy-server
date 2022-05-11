@@ -297,7 +297,7 @@ const createServer = ({
 
           serverResponse.on('end', () => {
             const virtualConsole = new VirtualConsole();
-            virtualConsole.on("error", () => {
+            virtualConsole.on('error', () => {
               // No-op to skip console errors. https://github.com/jsdom/jsdom/issues/2230
             });
 
@@ -356,17 +356,19 @@ const createServer = ({
                 // Node.ELEMENT_NODE = 1; Node.TEXT_NODE = 3
                 if (child.nodeType === 1) {
                   // var(--vh) doesn't work in JSDOM
-                  if (child.style.height && regexForVhValue.test(child.style.height))
+                  if (child.style.height && regexForVhValue.test(child.style.height)) {
                     child.style.height = child.style.height.replace(regexForVhValue, '$10px');
-                  if (child.style.minHeight && regexForVhValue.test(child.style.minHeight))
+                  }
+                  if (child.style.minHeight && regexForVhValue.test(child.style.minHeight)) {
                     child.style.minHeight = child.style.minHeight.replace(regexForVhValue, '$10px');
+                  }
                 }
 
                 if (child.nodeType !== 3) {
                   traverseNode(child);
                 }
-              })
-            }
+              });
+            };
 
             traverseNode(document.body);
 
