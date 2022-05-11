@@ -473,7 +473,7 @@ const createServer = ({
             'Cross-Origin-Resource-Policy': 'cross-origin',
             'Cross-Origin-Embedder-Policy': 'credentialless',
           });
-          clientResponse.end(`Http request timeout. Please enter a valid URL and try again.`);
+          clientResponse.end('Http request timeout. Please enter a valid URL and try again.');
         }
       });
 
