@@ -466,7 +466,7 @@ const createServer = ({
 
       serverRequest.on('timeout', () => {
         serverRequest.end();
-        logger.error(`Http request timeout`);
+        logger.error('Http request timeout');
         if (!clientResponse.writableFinished) {
           clientResponse.writeHead(400, {
             'Content-Type': 'text/plain',
