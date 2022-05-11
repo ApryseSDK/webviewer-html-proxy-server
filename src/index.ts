@@ -366,11 +366,11 @@ const createServer = ({
 
             const headIndex: number = newBody.indexOf('</head>');
             if (headIndex > 0) {
-              if (!/pdftron-css/.test(newBody)) {
+              if (!/pdftron-css/.test(newBody.substring(0, headIndex))) {
                 newBody = newBody.slice(0, headIndex) + styleTag + newBody.slice(headIndex);
               }
 
-              if (!/pdftron-js/.test(newBody)) {
+              if (!/pdftron-js/.test(newBody.substring(0, headIndex))) {
                 // order: declare global var first, then debounce, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
                 newBody = newBody.slice(0, headIndex) + globalVarsScript + debounceScript + navigationScript + textScript + newBody.slice(headIndex);
               }
