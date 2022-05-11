@@ -1,8 +1,8 @@
 import https from 'https';
 import http from 'http';
-import type { ServerHostPortSSL } from "./data";
+import type { ServerHostPortSSL } from './data';
 
-const getHostPortSSL = (url: string, allowHTTPProxy: boolean = false): ServerHostPortSSL => {
+const getHostPortSSL = (url: string, allowHTTPProxy = false): ServerHostPortSSL => {
   const {
     hostname,
     pathname,
@@ -12,7 +12,7 @@ const getHostPortSSL = (url: string, allowHTTPProxy: boolean = false): ServerHos
   let parsedSSL: typeof https | typeof http;
   // proxied URLs will be prefixed with https if doesn't start with http(s)
   // safe to assume that if it's not protocol http then it should be https
-  if (allowHTTPProxy && protocol == 'http:') {
+  if (allowHTTPProxy && protocol === 'http:') {
     parsedPort = 80;
     parsedSSL = http;
   } else {
@@ -24,7 +24,7 @@ const getHostPortSSL = (url: string, allowHTTPProxy: boolean = false): ServerHos
     parsedPort,
     parsedSSL,
     pathname,
-  }
-}
+  };
+};
 
-export { getHostPortSSL }
+export { getHostPortSSL };

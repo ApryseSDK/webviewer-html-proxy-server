@@ -83,7 +83,7 @@ const createServer = ({
       }),
       align(),
       printf(
-        ({ level, message, label, timestamp }) => `[${timestamp}] ${level}: ${message}`
+        ({ level, message, timestamp }) => `[${timestamp}] ${level}: ${message}`
       ),
       colorize({ all: true }),
     ),
@@ -97,14 +97,14 @@ const createServer = ({
   });
 
   if (ALLOW_HTTP_PROXY) {
-    logger.warn("*** Unsecured HTTP websites can now be proxied. Beware of ssrf attacks. See more here https://brightsec.com/blog/ssrf-server-side-request-forgery/")
+    logger.warn('*** Unsecured HTTP websites can now be proxied. Beware of ssrf attacks. See more here https://brightsec.com/blog/ssrf-server-side-request-forgery/');
   }
 
   const app = express();
   app.use(cookieParser());
   app.use(cors(CORS_OPTIONS));
 
-  const PATH: string = `${SERVER_ROOT}:${PORT}`;
+  const PATH = `${SERVER_ROOT}:${PORT}`;
 
   const defaultViewport: Viewport = { width: 1440, height: 770 };
   const puppeteerOptions: PuppeteerOptions = {
@@ -114,13 +114,13 @@ const createServer = ({
     ignoreHTTPSErrors: false, // whether to ignore HTTPS errors during navigation
   };
 
-  const defaultViewportHeightForVH: number = 1050;
+  const defaultViewportHeightForVH = 1050;
 
-  const regexForVhValue: RegExp = /(\d+?)vh/g;
+  const regexForVhValue = /(\d+?)vh/g;
 
   app.get('/pdftron-proxy', async (req: Request, res: Response) => {
     // this is the url retrieved from the input
-    const url: string = `${req.query.url}`;
+    const url = `${req.query.url}`;
     // ****** first check for malicious URLs
     if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
@@ -141,7 +141,7 @@ const createServer = ({
         if (validUrl !== url && !isValidURL(validUrl, ALLOW_HTTP_PROXY)) {
           res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
         } else {
-          logger.info(`********** NEW REQUEST: ${validUrl}`)
+          logger.info(`********** NEW REQUEST: ${validUrl}`);
 
           // cookie will only be set when res is sent succesfully
           const oneHour: number = 1000 * 60 * 60;
@@ -178,16 +178,17 @@ const createServer = ({
           // for some web pages, <html> and <body> have height: 100%
           // sum up the <body> children's height for an accurate page height
           document.body.childNodes.forEach((el: Element) => {
-            if (el.nodeType == Node.ELEMENT_NODE) {
+            if (el.nodeType === Node.ELEMENT_NODE) {
               const style = window.getComputedStyle(el);
-              // filter hidden/collapsible elements 
-              if (style.display == 'none' || style.visibility == 'hidden' || style.opacity == '0' || style.position == 'fixed' || style.position == 'absolute') {
+              // filter hidden/collapsible elements
+              if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0' || style.position === 'fixed' || style.position === 'absolute') {
                 return;
               }
               // some elements have undefined clientHeight
               // favor scrollHeight since clientHeight does not include padding
-              if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight))
+              if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight)) {
                 sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
+              }
             }
           });
           return {
@@ -210,8 +211,7 @@ const createServer = ({
   });
 
   app.get('/pdftron-link-preview', async (req: Request, res: Response) => {
-    const linkToPreview: string = `${req.query.url}`;
-    console.log('linkToPreview', linkToPreview)
+    const linkToPreview = `${req.query.url}`;
 
     try {
       const page = await nodeFetch(linkToPreview);
@@ -250,7 +250,7 @@ const createServer = ({
       let newHostName = parsedHost;
       let newPath = clientRequest.url;
 
-      let externalURL = newPath.split('/?external-proxy=')[1];
+      const externalURL = newPath.split('/?external-proxy=')[1];
       if (externalURL) {
         const { hostname, href, origin, pathname: externalURLPathName } = new URL(externalURL);
         const hrefWithoutOrigin = href.split(origin)[1] || externalURLPathName;
@@ -287,11 +287,13 @@ const createServer = ({
 
         // reset cache-control for https://www.keytrudahcp.com
         serverResponse.headers['cache-control'] = 'max-age=0, public, no-cache, no-store, must-revalidate';
-        let body: string = '';
+        let body = '';
         // Send html content from the proxied url to the browser so that it can spawn new requests.
         const serverResponseContentType = serverResponse.headers['content-type'];
         if (String(serverResponseContentType).indexOf('text/html') !== -1) {
-          serverResponse.on('data', (chunk: string) => body += chunk);
+          serverResponse.on('data', (chunk: string) => {
+            body += chunk;
+          });
 
           serverResponse.on('end', () => {
             const virtualConsole = new VirtualConsole();
@@ -304,14 +306,14 @@ const createServer = ({
             const { document } = window;
             document.documentElement.style.setProperty('--vh', `${defaultViewportHeightForVH * 0.01}px`);
 
-            document.querySelectorAll('link').forEach(el => {
+            document.querySelectorAll('link').forEach((el) => {
               const href = el.getAttribute('href');
               if (!href) {
                 return;
               }
 
               // filter only CSS links
-              if (el.rel == "stylesheet" || el.type == "text/css" || href.endsWith('.css')) {
+              if (el.rel === 'stylesheet' || el.type === 'text/css' || href.endsWith('.css')) {
                 if (!el.dataset.pdftron && isURLAbsolute(href)) {
                   // set this attibute to identify if <link> href has been modified
                   el.setAttribute('data-href', href);
@@ -329,21 +331,21 @@ const createServer = ({
                     } else {
                       // external URLs
                       el.setAttribute('data-pdftron', 'different-domain');
-                      el.setAttribute('href', `${PATH}/?external-proxy=${absoluteHref}`);
+                      el.setAttribute('href', `/?external-proxy=${absoluteHref}`);
                       // fix for github Failed to find a valid digest in the integrity attribute
                       if (el.getAttribute('integrity')) {
                         el.setAttribute('integrity', '');
                       }
                     }
                   } catch (e) {
-                    logger.error(e)
+                    logger.error(e);
                   }
                 }
               }
             });
 
             // replace vh values in inline styles
-            document.querySelectorAll('style').forEach(el => {
+            document.querySelectorAll('style').forEach((el) => {
               if (regexForVhValue.test(el.innerHTML)) {
                 el.innerHTML = el.innerHTML.replace(regexForVhValue, 'calc($1 * var(--vh))');
               }
@@ -396,9 +398,8 @@ const createServer = ({
           serverResponse.on('error', (e) => {
             logger.error(e);
           });
-
         } else if (String(serverResponseContentType).indexOf('text/css') !== -1) {
-          let cssContent: string = '';
+          let cssContent = '';
           let externalResponse: IncomingMessage | Gunzip = serverResponse;
           const contentEncoding = serverResponse.headers['content-encoding'];
 
@@ -409,7 +410,9 @@ const createServer = ({
             serverResponse.pipe(externalResponse);
           }
 
-          externalResponse.on('data', (chunk: string) => cssContent += chunk);
+          externalResponse.on('data', (chunk: string) => {
+            cssContent += chunk;
+          });
 
           externalResponse.on('end', () => {
             if (regexForVhValue.test(cssContent)) {
@@ -431,7 +434,6 @@ const createServer = ({
           externalResponse.on('error', (e) => {
             logger.error(e);
           });
-
         } else {
           // Pipe the server response from the proxied url to the browser so that new requests can be spawned for non-html content (js/css/json etc.)
           serverResponse.pipe(clientResponse, {
@@ -439,13 +441,13 @@ const createServer = ({
           });
           // Can be undefined
           if (serverResponseContentType) {
-            clientResponse.contentType(serverResponseContentType)
+            clientResponse.contentType(serverResponseContentType);
           }
         }
-      }
+      };
 
-      const serverRequest: ClientRequest = parsedSSL.request(options, serverResponse => {
-        // No need to check for redirects. Puppeteer will make sure final validURL exists 
+      const serverRequest: ClientRequest = parsedSSL.request(options, (serverResponse) => {
+        // No need to check for redirects. Puppeteer will make sure final validURL exists
         callback(serverResponse, clientResponse);
       });
 
