@@ -452,23 +452,29 @@ const createServer = ({
       serverRequest.on('error', (e) => {
         serverRequest.end();
         logger.error(`Http request, ${e}`);
-        clientResponse.writeHead(400, {
-          'Content-Type': 'text/plain',
-          'Cross-Origin-Resource-Policy': 'cross-origin',
-          'Cross-Origin-Embedder-Policy': 'credentialless',
-        });
-        clientResponse.end(`${e}. Please enter a valid URL and try again.`);
+        // Sometimes error ECONNRESET from serverRequest happened after clientResponse (the proxy) was successfully sent
+        // Happened on instagram.com
+        if (!clientResponse.writableFinished) {
+          clientResponse.writeHead(400, {
+            'Content-Type': 'text/plain',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'credentialless',
+          });
+          clientResponse.end(`${e}. Please enter a valid URL and try again.`);
+        }
       });
 
       serverRequest.on('timeout', () => {
         serverRequest.end();
         logger.error(`Http request timeout`);
-        clientResponse.writeHead(400, {
-          'Content-Type': 'text/plain',
-          'Cross-Origin-Resource-Policy': 'cross-origin',
-          'Cross-Origin-Embedder-Policy': 'credentialless',
-        });
-        clientResponse.end(`Http request timeout. Please enter a valid URL and try again.`);
+        if (!clientResponse.writableFinished) {
+          clientResponse.writeHead(400, {
+            'Content-Type': 'text/plain',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'credentialless',
+          });
+          clientResponse.end(`Http request timeout. Please enter a valid URL and try again.`);
+        }
       });
 
       serverRequest.end();
