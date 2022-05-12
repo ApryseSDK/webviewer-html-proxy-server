@@ -2,7 +2,7 @@
 import type https from 'https';
 import type http from 'http';
 import type { RequestOptions, ServerOptions } from 'https';
-import type { BrowserLaunchArgumentOptions, BrowserConnectOptions, LaunchOptions, Product } from "puppeteer";
+import type { BrowserLaunchArgumentOptions, BrowserConnectOptions, LaunchOptions, Product } from 'puppeteer';
 import type { CookieOptions } from 'express';
 import type { CorsOptions } from 'cors';
 export declare type ServerConfigurationOptions = {
