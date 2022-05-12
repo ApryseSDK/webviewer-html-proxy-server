@@ -2,6 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import puppeteer from 'puppeteer';
+import type { Browser } from 'puppeteer';
 import cookieParser from 'cookie-parser';
 import nodeFetch from 'node-fetch';
 import type { ClientRequest, IncomingMessage } from 'http';
@@ -126,9 +127,9 @@ const createServer = ({
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
       // ****** second check for puppeteer being able to goto url
-      const browser = await puppeteer.launch(puppeteerOptions);
-
+      let browser: Browser;
       try {
+        browser = await puppeteer.launch(puppeteerOptions);
         const page = await browser.newPage();
         // page.on('console', msg => console.log('PAGE LOG:', msg.text()));
         const pageHTTPResponse = await page.goto(url, {
@@ -149,10 +150,14 @@ const createServer = ({
           res.status(200).send({ validUrl });
         }
       } catch (err) {
-        logger.error(`Puppeteer ${url}`, err);
+        logger.error(`/pdftron-proxy ${url}`, err);
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
       } finally {
-        browser.close();
+        try {
+          await browser.close();
+        } catch (err) {
+          logger.error(`/pdftron-proxy browser.close ${url}`, err);
+        }
       }
     }
   });
@@ -164,8 +169,9 @@ const createServer = ({
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
       logger.info(`********** DOWNLOAD: ${url}`);
-      const browser = await puppeteer.launch(puppeteerOptions);
+      let browser: Browser;
       try {
+        browser = await puppeteer.launch(puppeteerOptions);
         const page = await browser.newPage();
         await page.goto(url, {
           waitUntil: 'domcontentloaded'
@@ -205,7 +211,11 @@ const createServer = ({
         logger.error(`/pdftron-download ${url}`, err);
         res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
       } finally {
-        browser.close();
+        try {
+          await browser.close();
+        } catch (err) {
+          logger.error(`/pdftron-download browser.close ${url}`, err);
+        }
       }
     }
   });
@@ -382,11 +392,11 @@ const createServer = ({
 
             const headIndex: number = newBody.indexOf('</head>');
             if (headIndex > 0) {
-              if (!/pdftron-css/.test(newBody)) {
+              if (!/pdftron-css/.test(newBody.substring(0, headIndex))) {
                 newBody = newBody.slice(0, headIndex) + styleTag + newBody.slice(headIndex);
               }
 
-              if (!/pdftron-js/.test(newBody)) {
+              if (!/pdftron-js/.test(newBody.substring(0, headIndex))) {
                 // order: declare global var first, then debounce, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
                 newBody = newBody.slice(0, headIndex) + globalVarsScript + debounceScript + navigationScript + textScript + newBody.slice(headIndex);
               }
