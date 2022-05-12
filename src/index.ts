@@ -2,12 +2,13 @@
 import express from 'express';
 import cors from 'cors';
 import puppeteer from 'puppeteer';
+import type { Browser } from 'puppeteer';
 import cookieParser from 'cookie-parser';
 import nodeFetch from 'node-fetch';
 import type { ClientRequest, IncomingMessage } from 'http';
 import type { Request, Response } from 'express';
 import { createLogger, format, transports } from 'winston';
-import { JSDOM } from 'jsdom';
+import { JSDOM, VirtualConsole } from 'jsdom';
 import { Gunzip, createGunzip } from 'zlib';
 
 // import from data types
@@ -126,9 +127,9 @@ const createServer = ({
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
       // ****** second check for puppeteer being able to goto url
-      const browser = await puppeteer.launch(puppeteerOptions);
-
+      let browser: Browser;
       try {
+        browser = await puppeteer.launch(puppeteerOptions);
         const page = await browser.newPage();
         // page.on('console', msg => console.log('PAGE LOG:', msg.text()));
         const pageHTTPResponse = await page.goto(url, {
@@ -149,10 +150,14 @@ const createServer = ({
           res.status(200).send({ validUrl });
         }
       } catch (err) {
-        logger.error(`Puppeteer ${url}`, err);
+        logger.error(`/pdftron-proxy ${url}`, err);
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
       } finally {
-        browser.close();
+        try {
+          await browser.close();
+        } catch (err) {
+          logger.error(`/pdftron-proxy browser.close ${url}`, err);
+        }
       }
     }
   });
@@ -164,8 +169,9 @@ const createServer = ({
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
       logger.info(`********** DOWNLOAD: ${url}`);
-      const browser = await puppeteer.launch(puppeteerOptions);
+      let browser: Browser;
       try {
+        browser = await puppeteer.launch(puppeteerOptions);
         const page = await browser.newPage();
         await page.goto(url, {
           waitUntil: 'domcontentloaded'
@@ -205,7 +211,11 @@ const createServer = ({
         logger.error(`/pdftron-download ${url}`, err);
         res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
       } finally {
-        browser.close();
+        try {
+          await browser.close();
+        } catch (err) {
+          logger.error(`/pdftron-download browser.close ${url}`, err);
+        }
       }
     }
   });
@@ -252,8 +262,8 @@ const createServer = ({
 
       const externalURL = newPath.split('/?external-proxy=')[1];
       if (externalURL) {
-        const { hostname, href, origin } = new URL(externalURL);
-        const hrefWithoutOrigin = href.split(origin)[1] || '';
+        const { hostname, href, origin, pathname: externalURLPathName } = new URL(externalURL);
+        const hrefWithoutOrigin = href.split(origin)[1] || externalURLPathName;
         newHostName = hostname;
         newPath = hrefWithoutOrigin;
       }
@@ -296,7 +306,12 @@ const createServer = ({
           });
 
           serverResponse.on('end', () => {
-            const virtualDOM = new JSDOM(body);
+            const virtualConsole = new VirtualConsole();
+            virtualConsole.on('error', () => {
+              // No-op to skip console errors. https://github.com/jsdom/jsdom/issues/2230
+            });
+
+            const virtualDOM = new JSDOM(body, { virtualConsole });
             const { window } = virtualDOM;
             const { document } = window;
             document.documentElement.style.setProperty('--vh', `${defaultViewportHeightForVH * 0.01}px`);
@@ -315,9 +330,9 @@ const createServer = ({
 
                   const absoluteHref = getCorrectHref(href);
                   try {
-                    const { hostname, href, origin } = new URL(absoluteHref);
+                    const { hostname, href, origin, pathname } = new URL(absoluteHref);
                     // pathname doesn't include query and hash; use href.split(origin) to preserve everything
-                    const hrefWithoutOrigin = href.split(origin)[1] || '';
+                    const hrefWithoutOrigin = href.split(origin)[1] || pathname;
                     el.setAttribute('data-domain', hostname);
                     // check if same domain with cookiesUrl
                     if (hostname === parsedHost) {
@@ -346,6 +361,27 @@ const createServer = ({
               }
             });
 
+            const traverseNode = (parentNode: HTMLElement) => {
+              parentNode.childNodes.forEach((child: HTMLElement) => {
+                // Node.ELEMENT_NODE = 1; Node.TEXT_NODE = 3
+                if (child.nodeType === 1) {
+                  // var(--vh) doesn't work in JSDOM
+                  if (child.style.height && regexForVhValue.test(child.style.height)) {
+                    child.style.height = child.style.height.replace(regexForVhValue, '$10px');
+                  }
+                  if (child.style.minHeight && regexForVhValue.test(child.style.minHeight)) {
+                    child.style.minHeight = child.style.minHeight.replace(regexForVhValue, '$10px');
+                  }
+                }
+
+                if (child.nodeType !== 3) {
+                  traverseNode(child);
+                }
+              });
+            };
+
+            traverseNode(document.body);
+
             let newBody = virtualDOM.serialize();
 
             const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
@@ -356,11 +392,11 @@ const createServer = ({
 
             const headIndex: number = newBody.indexOf('</head>');
             if (headIndex > 0) {
-              if (!/pdftron-css/.test(newBody)) {
+              if (!/pdftron-css/.test(newBody.substring(0, headIndex))) {
                 newBody = newBody.slice(0, headIndex) + styleTag + newBody.slice(headIndex);
               }
 
-              if (!/pdftron-js/.test(newBody)) {
+              if (!/pdftron-js/.test(newBody.substring(0, headIndex))) {
                 // order: declare global var first, then debounce, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
                 newBody = newBody.slice(0, headIndex) + globalVarsScript + debounceScript + navigationScript + textScript + newBody.slice(headIndex);
               }
@@ -430,23 +466,29 @@ const createServer = ({
       serverRequest.on('error', (e) => {
         serverRequest.end();
         logger.error(`Http request, ${e}`);
-        clientResponse.writeHead(400, {
-          'Content-Type': 'text/plain',
-          'Cross-Origin-Resource-Policy': 'cross-origin',
-          'Cross-Origin-Embedder-Policy': 'credentialless',
-        });
-        clientResponse.end(`${e}. Please enter a valid URL and try again.`);
+        // Sometimes error ECONNRESET from serverRequest happened after clientResponse (the proxy) was successfully sent
+        // Happened on instagram.com
+        if (!clientResponse.writableFinished) {
+          clientResponse.writeHead(400, {
+            'Content-Type': 'text/plain',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'credentialless',
+          });
+          clientResponse.end(`${e}. Please enter a valid URL and try again.`);
+        }
       });
 
       serverRequest.on('timeout', () => {
         serverRequest.end();
         logger.error('Http request timeout');
-        clientResponse.writeHead(400, {
-          'Content-Type': 'text/plain',
-          'Cross-Origin-Resource-Policy': 'cross-origin',
-          'Cross-Origin-Embedder-Policy': 'credentialless',
-        });
-        clientResponse.end('Http request timeout. Please enter a valid URL and try again.');
+        if (!clientResponse.writableFinished) {
+          clientResponse.writeHead(400, {
+            'Content-Type': 'text/plain',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'credentialless',
+          });
+          clientResponse.end('Http request timeout. Please enter a valid URL and try again.');
+        }
       });
 
       serverRequest.end();
