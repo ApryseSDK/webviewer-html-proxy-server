@@ -186,6 +186,8 @@ window.addEventListener('message', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  window.parent.postMessage('proxyFinishLoading', getClientUrl());
+
   sendDataToClient();
 
   const observer = new MutationObserver(() => {
