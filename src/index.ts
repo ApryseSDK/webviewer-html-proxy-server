@@ -28,6 +28,8 @@ import sendTextDataScript from './assets/getTextData.js';
 import blockNavigationScript from './assets/blockNavigation.js';
 // @ts-ignore
 import blockNavigationStyle from './assets/blockNavigation.css';
+// @ts-ignore
+import proxyFailedPage from './assets/proxyFailedPage.html';
 
 /**
  * This is a proxy solution to use with WebViewer-HTML that allows loading external HTML web pages so that HTML pages can be annotated.
@@ -469,12 +471,13 @@ const createServer = ({
         // Sometimes error ECONNRESET from serverRequest happened after clientResponse (the proxy) was successfully sent
         // Happened on instagram.com
         if (!clientResponse.writableFinished) {
-          clientResponse.writeHead(400, {
-            'Content-Type': 'text/plain',
+          clientResponse.writeHead(200, {
+            'Content-Type': 'text/html',
             'Cross-Origin-Resource-Policy': 'cross-origin',
             'Cross-Origin-Embedder-Policy': 'credentialless',
           });
-          clientResponse.end(`${e}. Please enter a valid URL and try again.`);
+          // clientResponse.end(`${e}. Please enter a valid URL and try again.`);
+          clientResponse.end(proxyFailedPage);
         }
       });
 
@@ -482,12 +485,13 @@ const createServer = ({
         serverRequest.end();
         logger.error('Http request timeout');
         if (!clientResponse.writableFinished) {
-          clientResponse.writeHead(400, {
-            'Content-Type': 'text/plain',
+          clientResponse.writeHead(200, {
+            'Content-Type': 'text/html',
             'Cross-Origin-Resource-Policy': 'cross-origin',
             'Cross-Origin-Embedder-Policy': 'credentialless',
           });
-          clientResponse.end('Http request timeout. Please enter a valid URL and try again.');
+          // clientResponse.end('Http request timeout. Please enter a valid URL and try again.');
+          clientResponse.end(proxyFailedPage);
         }
       });
 
