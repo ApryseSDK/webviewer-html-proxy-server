@@ -14,12 +14,6 @@ const blockNavigation = () => {
   const pageWidth = 1440;
   const { origin } = new URL(window.location);
 
-  // if (!document.querySelector('[data-pdftron="pdftron-main-popup"]')) {
-  //   let mainPopup = document.createElement('div');
-  //   mainPopup.setAttribute('data-pdftron', 'pdftron-main-popup');
-  //   document.body.appendChild(mainPopup);
-  // }
-
   // block navigation for suspicious <a> that don't have href or empty href: stubbing onclick
   // block navigation for all a tags that don't start with #
   document.querySelectorAll(`
@@ -74,37 +68,45 @@ const blockNavigation = () => {
           div.style.left = 0;
         }
 
-        let count = 0;
-        const traverseToParentWithOverflowHidden = (linkElement) => {
-          count += 1;
-          const parentElement = linkElement.parentElement;
-          if (parentElement.nodeType === Node.ELEMENT_NODE) {
-            const parentStyle = window.getComputedStyle(parentElement);
-            if (count > 3) {
-              return;
-            }
-            if (parentStyle.overflow === 'hidden') {
-              parentElement.style.overflow = 'visible';
-            } else {
+        elem.appendChild(div);
+        let parentElementWithOverflowHidden;
+
+        elem.onmouseenter = async () => {
+          let count = 0;
+
+          const traverseToParentWithOverflowHidden = (popupElement) => {
+            count += 1;
+            // const funcs = [];
+            const parentElement = popupElement.parentElement;
+            if (parentElement && parentElement.nodeType === Node.ELEMENT_NODE) {
+              const parentStyle = window.getComputedStyle(parentElement);
+              if (count > 4) {
+                return;
+              }
+
+              if (parentStyle.overflow === 'hidden') {
+                parentElementWithOverflowHidden = parentElement;
+                parentElement.style.overflow = 'visible';
+                return;
+              }
+
+              // funcs.push(() => traverseToParentWithOverflowHidden(parentElement));
               traverseToParentWithOverflowHidden(parentElement);
             }
+
+            // return () => {
+            //   funcs.forEach((func) => func());
+            // };
+          };
+
+          if (parentElementWithOverflowHidden) {
+            parentElementWithOverflowHidden.style.overflow = 'visible';
+          } else {
+            traverseToParentWithOverflowHidden(div);
           }
-        };
 
-        traverseToParentWithOverflowHidden(elem);
 
-        // let mainPopup = document.querySelector('[data-pdftron="pdftron-main-popup"]');
-
-        elem.appendChild(div);
-        elem.onmouseenter = async () => {
-          // mainPopup.innerHTML = div.innerHTML;
           div.style.display = 'block';
-          // const { top, left, bottom, right } = div.getBoundingClientRect();
-          // mainPopup.style.top = `${top}px`;
-          // mainPopup.style.left = `${left}px`;
-          // mainPopup.style.display = 'block';
-          // mainPopup.style.bottom = `${bottom}px`;
-          // mainPopup.style.right = `${right}px`;
           if (div.dataset.pdftronpreview !== 'pdftron-link-fullpreview') {
             try {
               const linkPreviewRes = await fetch(`${origin}/pdftron-link-preview?url=${elem.getAttribute('href')}`);
@@ -116,23 +118,23 @@ const blockNavigation = () => {
                 const metaDiv = metaDescription ? `<div style="margin-top: 5px;">${metaDescription}</div>` : '';
                 const noInformationDiv = !faviconUrl && !pageTitle && !metaDiv ? '<div style="font-style: italic;">No information was retrieved from this URL</div' : '';
                 div.innerHTML = `
-                  URL: <span style="color: #00a5e4">${elem.getAttribute('href')}</span>
+                  URL: <span style="color: #00a5e4 !important">${elem.getAttribute('href')}</span>
                   <div style="display: flex; flex-flow: row nowrap; align-items: center; margin-top: 5px;">${faviconDiv}${pageTitle}</div>
                   ${metaDiv}
                   ${noInformationDiv}
                 `;
-                // mainPopup.innerHTML = div.innerHTML;
               }
             } catch (err) {
               console.error('Link preview', elem.getAttribute('href'), err);
             }
           }
-          // div.scrollIntoViewIfNeeded();
         };
 
         elem.onmouseleave = () => {
           div.style.display = 'none';
-          // mainPopup.style.display = 'none';
+          if (parentElementWithOverflowHidden) {
+            parentElementWithOverflowHidden.style.overflow = 'hidden';
+          }
         };
       }
     }
