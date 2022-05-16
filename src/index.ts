@@ -18,6 +18,7 @@ import type { PageDimensions, ProxyRequestOptions, PuppeteerOptions, ServerConfi
 import { isValidURL } from './utils/isValidURL';
 import { getHostPortSSL } from './utils/getHostPortSSL';
 import { isURLAbsolute, getCorrectHref } from './utils/isURLAbsolute';
+import { getProxyFailedPage } from './utils/proxyFailedPage';
 
 // import raw from assets
 // @ts-ignore
@@ -28,8 +29,6 @@ import sendTextDataScript from './assets/getTextData.js';
 import blockNavigationScript from './assets/blockNavigation.js';
 // @ts-ignore
 import blockNavigationStyle from './assets/blockNavigation.css';
-// @ts-ignore
-import proxyFailedPage from './assets/proxyFailedPage.html';
 
 /**
  * This is a proxy solution to use with WebViewer-HTML that allows loading external HTML web pages so that HTML pages can be annotated.
@@ -156,7 +155,7 @@ const createServer = ({
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
       } finally {
         try {
-          await browser.close();
+          await browser?.close();
         } catch (err) {
           logger.error(`/pdftron-proxy browser.close ${url}`, err);
         }
@@ -214,7 +213,7 @@ const createServer = ({
         res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
       } finally {
         try {
-          await browser.close();
+          await browser?.close();
         } catch (err) {
           logger.error(`/pdftron-download browser.close ${url}`, err);
         }
@@ -476,22 +475,7 @@ const createServer = ({
             'Cross-Origin-Resource-Policy': 'cross-origin',
             'Cross-Origin-Embedder-Policy': 'credentialless',
           });
-          // clientResponse.end(`${e}. Please enter a valid URL and try again.`);
-          clientResponse.end(proxyFailedPage);
-        }
-      });
-
-      serverRequest.on('timeout', () => {
-        serverRequest.end();
-        logger.error('Http request timeout');
-        if (!clientResponse.writableFinished) {
-          clientResponse.writeHead(200, {
-            'Content-Type': 'text/html',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-            'Cross-Origin-Embedder-Policy': 'credentialless',
-          });
-          // clientResponse.end('Http request timeout. Please enter a valid URL and try again.');
-          clientResponse.end(proxyFailedPage);
+          clientResponse.end(getProxyFailedPage(e));
         }
       });
 

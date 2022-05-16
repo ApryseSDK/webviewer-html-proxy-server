@@ -173,7 +173,7 @@ const getClientUrl = () => {
 const sendDataToClient = () => {
   const { selectionData, linkData } = getTextData(document.body);
   const iframeHeight = getPageHeight();
-  window.parent.postMessage({ selectionData, linkData, iframeHeight }, getClientUrl());
+  window.parent.postMessage({ key: 'selectionData', selectionData, linkData, iframeHeight }, getClientUrl());
 };
 
 const debounceSendDataOnMutation = debounceJS(sendDataToClient, 500, false);
