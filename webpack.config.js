@@ -53,7 +53,7 @@ module.exports = {
       },
       // https://webpack.js.org/guides/asset-modules/ no additional loader needed
       {
-        test: [/\.js$/, /\.css$/,  /\.html$/],
+        test: [/\.js$/, /\.css$/],
         include: /\/src\/assets/,
         type: 'asset/source',
       },
