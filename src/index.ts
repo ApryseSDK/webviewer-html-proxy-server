@@ -137,7 +137,8 @@ const createServer = ({
           // use 'domcontentloaded' https://github.com/puppeteer/puppeteer/issues/1666
           waitUntil: 'domcontentloaded', // defaults to load
         });
-        const validUrl: string = pageHTTPResponse.url();
+        // https://github.com/puppeteer/puppeteer/issues/2479 pageHTTPResponse could be null
+        const validUrl: string = pageHTTPResponse?.url() || url;
 
         // check again if puppeteer's validUrl will pass the test
         if (validUrl !== url && !isValidURL(validUrl, ALLOW_HTTP_PROXY)) {
