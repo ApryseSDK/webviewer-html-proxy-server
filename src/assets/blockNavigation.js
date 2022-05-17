@@ -49,7 +49,7 @@ const blockNavigation = () => {
 
         const div = document.createElement('div');
         div.setAttribute('data-pdftron', 'pdftron-link-popup');
-        div.innerHTML = `URL: <span style="color: #00a5e4">${elem.getAttribute('href')}</span>`;
+        div.innerHTML = `<div dir="ltr">URL: <span style="color: #00a5e4">${elem.getAttribute('href')}</span></div>`;
 
         const {
           x: elBoundingRectX,
@@ -69,42 +69,43 @@ const blockNavigation = () => {
         }
 
         elem.appendChild(div);
-        let parentElementWithOverflowHidden;
+        let undoOverflow;
 
         elem.onmouseenter = async () => {
-          let count = 0;
-
-          const traverseToParentWithOverflowHidden = (popupElement) => {
-            count += 1;
-            // const funcs = [];
-            const parentElement = popupElement.parentElement;
+          const undoFunctions = [];
+          const traverseToParentWithOverflowHidden = (targetElement) => {
+            const parentElement = targetElement.parentElement;
             if (parentElement && parentElement.nodeType === Node.ELEMENT_NODE) {
               const parentStyle = window.getComputedStyle(parentElement);
-              if (count > 4) {
+
+              if (!parentElement || parentElement === document.body) {
                 return;
               }
 
               if (parentStyle.overflow === 'hidden') {
-                parentElementWithOverflowHidden = parentElement;
-                parentElement.style.overflow = 'visible';
-                return;
+                if (!parentElement.style.getPropertyValue('overflow')) {
+                  // if getPropertyValue is empty then the value comes from a stylesheet, just need to remove the newly set property
+                  undoFunctions.push(() => parentElement.style.removeProperty('overflow'));
+                } else {
+                  // if there's important in the value then reset it as is
+                  if (!parentElement.style.getPropertyPriority('overflow')) {
+                    undoFunctions.push(() => parentElement.style.setProperty('overflow', 'hidden'));
+                  } else {
+                    undoFunctions.push(() => parentElement.style.setProperty('overflow', 'hidden', 'important'));
+                  }
+                }
+                parentElement.style.setProperty('overflow', 'visible', 'important');
               }
 
-              // funcs.push(() => traverseToParentWithOverflowHidden(parentElement));
               traverseToParentWithOverflowHidden(parentElement);
             }
 
-            // return () => {
-            //   funcs.forEach((func) => func());
-            // };
+            return () => {
+              undoFunctions.forEach((func) => func());
+            };
           };
 
-          if (parentElementWithOverflowHidden) {
-            parentElementWithOverflowHidden.style.overflow = 'visible';
-          } else {
-            traverseToParentWithOverflowHidden(div);
-          }
-
+          undoOverflow = traverseToParentWithOverflowHidden(div);
 
           div.style.display = 'block';
           if (div.dataset.pdftronpreview !== 'pdftron-link-fullpreview') {
@@ -114,11 +115,11 @@ const blockNavigation = () => {
                 const linkPreviewResJson = await linkPreviewRes.json();
                 const { faviconUrl, pageTitle, metaDescription } = linkPreviewResJson;
                 div.setAttribute('data-pdftronpreview', 'pdftron-link-fullpreview');
-                const faviconDiv = faviconUrl ? `<img class="link-preview-favicon" style="margin-right: 5px; margin-bottom: 2px;" width="20" src="${faviconUrl}">` : '';
+                const faviconDiv = faviconUrl ? `<img class="link-preview-favicon" style="margin-inline-end: 5px; margin-bottom: 2px;" width="20" src="${faviconUrl}">` : '';
                 const metaDiv = metaDescription ? `<div style="margin-top: 5px;">${metaDescription}</div>` : '';
                 const noInformationDiv = !faviconUrl && !pageTitle && !metaDiv ? '<div style="font-style: italic;">No information was retrieved from this URL</div' : '';
                 div.innerHTML = `
-                  URL: <span style="color: #00a5e4 !important">${elem.getAttribute('href')}</span>
+                  <div dir="ltr">URL: <span style="color: #00a5e4 !important">${elem.getAttribute('href')}</span></div>
                   <div style="display: flex; flex-flow: row nowrap; align-items: center; margin-top: 5px;">${faviconDiv}${pageTitle}</div>
                   ${metaDiv}
                   ${noInformationDiv}
@@ -132,8 +133,8 @@ const blockNavigation = () => {
 
         elem.onmouseleave = () => {
           div.style.display = 'none';
-          if (parentElementWithOverflowHidden) {
-            parentElementWithOverflowHidden.style.overflow = 'hidden';
+          if (typeof undoOverflow === 'function') {
+            undoOverflow();
           }
         };
       }
