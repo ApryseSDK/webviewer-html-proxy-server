@@ -186,6 +186,8 @@ const blockNavigation = () => {
         };
 
         elem.onmouseenter = async () => {
+          // save the original styles (if exist) and remove/revert them onmouseleave
+          // https://www.roadandtrack.com/car-culture/a38378639/mate-rimac-profile/
           elemOriginalStyles = [
             { key: 'position', value: elem.style.position },
             { key: 'top', value: elem.style.top },
