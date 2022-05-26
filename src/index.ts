@@ -225,7 +225,11 @@ const createServer = ({
 
     try {
       const page = await nodeFetch(linkToPreview);
-      const virtualDOM = new JSDOM(await page.text());
+      const virtualConsole = new VirtualConsole();
+      virtualConsole.on('error', () => {
+        // No-op to skip console errors. https://github.com/jsdom/jsdom/issues/2230
+      });
+      const virtualDOM = new JSDOM(await page.text(), { virtualConsole });
       const { window } = virtualDOM;
       const { document } = window;
 
