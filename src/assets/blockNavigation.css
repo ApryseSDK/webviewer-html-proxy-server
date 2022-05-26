@@ -66,6 +66,10 @@ li[role="presentation"]:active {
     flex: 0 0 20px;
 }
 
+.pdftron-link-popup-inner .pdftron-link-favicon {
+    display: none;
+}
+
 .pdftron-link-popup-inner .pdftron-link-favicon-empty {
     height: 20px;
     border-radius: 4px;

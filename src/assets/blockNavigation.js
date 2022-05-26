@@ -27,8 +27,9 @@ const faviconEmptySpan = () => {
 
 const faviconEmptyString = '<span class="pdftron-link-favicon-empty"></span>';
 
-const errorLoadingImage = (img) => {
-  img.parentElement.replaceChild(faviconEmptySpan(), img);
+const successLoadingImage = (img) => {
+  img.previousSibling.remove();
+  img.style.display = 'block';
 };
 
 const getHostName = (hostname) => {
@@ -223,7 +224,7 @@ const blockNavigation = () => {
                 const linkPreviewResJson = await linkPreviewRes.json();
                 const { faviconUrl, pageTitle, metaDescription } = linkPreviewResJson;
                 popupContainer.setAttribute('data-pdftronpreview', 'pdftron-link-fullpreview');
-                const faviconDiv = faviconUrl ? `<img class="pdftron-link-favicon" width="20" src="${faviconUrl}" onerror="errorLoadingImage(this);">` : faviconEmptyString;
+                const faviconDiv = faviconUrl ? `${faviconEmptyString}<img class="pdftron-link-favicon" width="20" src="${faviconUrl}" onload="successLoadingImage(this);">` : faviconEmptyString;
                 const hostNameDiv = pageTitle ? `<div style="color: #868E96 !important; margin-top: 4px;">${getHostName(hostname)}</div>` : '';
                 const metaDiv = metaDescription ? `<div class="pdftron-link-meta">${metaDescription}</div>` : '';
                 popupContainer.innerHTML = `
