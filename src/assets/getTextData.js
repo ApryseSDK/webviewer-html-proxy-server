@@ -2,7 +2,7 @@
 const getTextData = (body) => {
   const traverseTextNode = (parentNode, struct, offsets, quads, str, linksArray) => {
     const range = document.createRange();
-    parentNode.childNodes.forEach((child) => {
+    parentNode.childNodes?.forEach((child) => {
       if (isInvalidNode(child)) {
         return;
       }
@@ -141,7 +141,8 @@ const getTextData = (body) => {
 };
 
 const isInvalidNode = (node) => {
-  return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect().width === 0 || node.getBoundingClientRect().height === 0));
+  // optional chaining on https://www.bloomberg.com/
+  return (!node) || (node.getBoundingClientRect && (node.getBoundingClientRect()?.width === 0 || node.getBoundingClientRect()?.height === 0));
 };
 
 const getClientUrl = () => {
