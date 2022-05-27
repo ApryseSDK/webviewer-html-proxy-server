@@ -12,7 +12,7 @@ import { JSDOM, VirtualConsole } from 'jsdom';
 import { Gunzip, createGunzip } from 'zlib';
 
 // import from data types
-import type { PageDimensions, ProxyRequestOptions, PuppeteerOptions, ServerConfigurationOptions, Viewport } from './utils/data.js';
+import type { PageDimensions, ProxyRequestOptions, PuppeteerOptions, ServerConfigurationOptions, Viewport } from './utils/types.js';
 
 // import from utils
 import { isValidURL } from './utils/isValidURL';
@@ -23,11 +23,17 @@ import { isURLAbsolute, getCorrectHref } from './utils/isURLAbsolute';
 // @ts-ignore
 import debounceJS from './assets/debounceJS.js';
 // @ts-ignore
-import sendTextDataScript from './assets/getTextData.js';
+import constants from './assets/constants.js';
 // @ts-ignore
-import blockNavigationScript from './assets/blockNavigation.js';
+import sendTextData from './assets/getTextData.js';
+// @ts-ignore
+import blockNavigation from './assets/blockNavigation.js';
+// @ts-ignore
+import linkPreview from './assets/linkPreview.js';
 // @ts-ignore
 import blockNavigationStyle from './assets/blockNavigation.css';
+// @ts-ignore
+import linkPreviewStyle from './assets/linkPreview.css';
 
 /**
  * This is a proxy solution to use with WebViewer-HTML that allows loading external HTML web pages so that HTML pages can be annotated.
@@ -388,11 +394,18 @@ const createServer = ({
 
             let newBody = virtualDOM.serialize();
 
-            const styleTag = `<style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>`;
+            const styleTag = `
+              <style type='text/css' id='pdftron-css'>${blockNavigationStyle}</style>
+              <style type='text/css'>${linkPreviewStyle}</style>
+            `;
             const globalVarsScript = `<script type='text/javascript' id='pdftron-js'>window.PDFTron = {}; window.PDFTron.urlToProxy = '${cookiesUrl}';</script>`;
-            const debounceScript = `<script type='text/javascript'>${debounceJS}</script>`;
-            const navigationScript = `<script type='text/javascript'>${blockNavigationScript}</script>`;
-            const textScript = `<script type='text/javascript'>${sendTextDataScript}</script>`;
+            const scriptTag = `
+              <script type='text/javascript'>${debounceJS}</script>
+              <script type='text/javascript'>${constants}</script>
+              <script type='text/javascript'>${blockNavigation}</script>
+              <script type='text/javascript'>${linkPreview}</script>
+              <script type='text/javascript'>${sendTextData}</script>
+            `;
 
             const headIndex: number = newBody.indexOf('</head>');
             if (headIndex > 0) {
@@ -402,7 +415,7 @@ const createServer = ({
 
               if (!/pdftron-js/.test(newBody.substring(0, headIndex))) {
                 // order: declare global var first, then debounce, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
-                newBody = newBody.slice(0, headIndex) + globalVarsScript + debounceScript + navigationScript + textScript + newBody.slice(headIndex);
+                newBody = newBody.slice(0, headIndex) + globalVarsScript + scriptTag + newBody.slice(headIndex);
               }
             }
 

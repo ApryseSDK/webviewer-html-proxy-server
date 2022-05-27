@@ -1,0 +1,36 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-unused-vars */
+const getPageHeight = () => {
+  let sum = 0;
+  // for some web pages, <html> and <body> have height: 100%
+  // sum up the <body> children's height for an accurate page height
+  // example: when page expands and then shrinks, <body> height will not reflect this change since it's 100% (which is the iframe height)
+  document.body.childNodes.forEach((el) => {
+    if (el.nodeType === Node.ELEMENT_NODE) {
+      const style = window.getComputedStyle(el);
+      // filter hidden/collapsible elements
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0' || style.position === 'fixed' || style.position === 'absolute') {
+        return;
+      }
+      // some elements have undefined clientHeight
+      // favor scrollHeight since clientHeight does not include padding
+      if (!isNaN(el.scrollHeight) && !isNaN(el.clientHeight)) {
+        sum += (el.clientHeight > 0 ? (el.scrollHeight || el.clientHeight) : el.clientHeight);
+      }
+    }
+  });
+  return sum;
+};
+
+const linkSelectors = `
+  a:not([href]), 
+  a[href=""], 
+  a[href]:not([href^="#"]):not([href^="tel:"]):not([href^="sms:"]):not([href^="mailto:"]):not([href^="javascript:"])
+`;
+
+const mutationObserverConfig = {
+  attributes: false,
+  childList: true,
+  subtree: true,
+  characterData: false,
+};
