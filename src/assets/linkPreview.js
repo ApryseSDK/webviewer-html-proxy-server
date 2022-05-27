@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-unused-vars */
@@ -89,10 +90,11 @@ const linkPreviewPopup = () => {
       if (linkPreviewRes.status !== 400) {
         const linkPreviewResJson = await linkPreviewRes.json();
         const { faviconUrl, pageTitle, metaDescription } = linkPreviewResJson;
-        popupContainer.setAttribute('data-pdftronpreview', 'pdftron-link-fullpreview');
         const faviconDiv = faviconUrl ? `${faviconEmptyString}<img class="pdftron-link-favicon" width="20" src="${faviconUrl}" onload="successLoadingImage(this);">` : faviconEmptyString;
         const hostNameDiv = pageTitle ? `<div style="color: #868E96 !important; margin-top: 4px;">${getHostName(hostname)}</div>` : '';
         const metaDiv = metaDescription ? `<div class="pdftron-link-meta">${metaDescription}</div>` : '';
+
+        popupContainer.setAttribute('data-pdftronpreview', 'pdftron-link-fullpreview');
         popupContainer.innerHTML = `
           <div class="pdftron-link-popup-inner">
             ${popupDefaultInnerHTML(faviconDiv, pageTitle || elementHref, elementHref)}

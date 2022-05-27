@@ -1,3 +1,4 @@
+/* IMPORTANT: add !important to easily inherited CSS and to reset CSS values */
 /* styling link preview popup */
 .pdftron-link-popup-outer {
     display: none;
@@ -62,6 +63,8 @@
     /* display flex will not show ellipsis */
     display: block !important;
     height: auto !important;
+    padding: 0px !important;
+    border: 0 !important;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -83,13 +86,13 @@
     margin: 0;
     width: auto !important;
     height: auto !important;
-    border: 0;
+    border: 0 !important;
     cursor: pointer;
     position: relative;
     flex: 0 0 20px;
     outline: none;
-    border-radius: 0;
-    box-shadow: none;
+    border-radius: 0 !important;
+    box-shadow: none !important;
 }
 
 .pdftron-link-popup-inner button.pdftron-link-button-copy svg {
