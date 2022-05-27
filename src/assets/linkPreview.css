@@ -9,17 +9,18 @@
 }
 
 .pdftron-link-popup-inner {
-    font-family: inherit;
-    font-size: 12px;
-    text-transform: initial;
-    font-weight: 400;
-    line-height: 14.4px;
+    font-family: inherit !important;
+    font-size: 12px !important;
+    text-transform: initial !important;
+    font-weight: 400 !important;
+    line-height: 14.4px !important;
     /* background is white so color cannot be inherit (parent color might be white) */
     /* important to overide any hover behaviour from parent */
     color: #000 !important;
     background-color: white !important;
-    border-radius: 4px;
-    box-shadow: 0px 0px 3px 0px #868E96;
+    text-shadow: none !important;
+    border-radius: 4px !important;
+    box-shadow: 0px 0px 3px 0px #868E96 !important;
     /* box-shadow: 0 1px 3px 1px rgba(60, 64, 67, 0.15); */
     padding: 12px;
     text-align: left;
@@ -29,7 +30,7 @@
 }
 
 .pdftron-link-popup-inner :hover {
-    background-color: initial;
+    background-color: initial !important;
 }
 
 .pdftron-link-popup-inner .pdftron-link-favicon,
@@ -50,11 +51,17 @@
     background-color: #E0E0E0;
 }
 
-.pdftron-link-popup-inner .pdftron-link-title {
-    font-weight: 600;
+.pdftron-link-popup-inner a.pdftron-link-title {
+    font-weight: 600 !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
     color: #00A5E4 !important;
+    text-decoration: none !important;
     flex-grow: 1;
     flex-shrink: 1;
+    /* display flex will not show ellipsis */
+    display: block !important;
+    height: auto !important;
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
@@ -62,49 +69,54 @@
     cursor: pointer;
 }
 
-.pdftron-link-popup-inner .pdftron-link-title:hover,
-.pdftron-link-popup-inner .pdftron-link-title:active {
+.pdftron-link-popup-inner a.pdftron-link-title:hover,
+.pdftron-link-popup-inner a.pdftron-link-title:active {
     color: #1A4971 !important;
-    text-decoration: none !important;
 }
 
-.pdftron-link-popup-inner .pdftron-link-button-copy {
-    color: #868E96;
-    background-color: transparent;
+.pdftron-link-popup-inner button.pdftron-link-button-copy {
+    font-size: inherit !important;
+    line-height: inherit !important;
+    color: #868E96 !important;
+    background-color: transparent !important;
     padding: 3px;
     margin: 0;
+    width: auto !important;
+    height: auto !important;
     border: 0;
     cursor: pointer;
     position: relative;
     flex: 0 0 20px;
     outline: none;
+    border-radius: 0;
+    box-shadow: none;
 }
 
-.pdftron-link-popup-inner .pdftron-link-button-copy svg {
+.pdftron-link-popup-inner button.pdftron-link-button-copy svg {
     /* override https://www.roadandtrack.com/car-culture/a38378639/mate-rimac-profile/ */
     width: auto !important;
     height: auto !important;
     vertical-align: middle !important;
 }
 
-.pdftron-link-popup-inner .pdftron-link-button-copy:hover {
-    background-color: #E7EDF3;
+.pdftron-link-popup-inner button.pdftron-link-button-copy:hover {
+    background-color: #E7EDF3 !important;
 }
 
-.pdftron-link-popup-inner .pdftron-link-button-copy:active {
-    color: #1A4971;
-    background-color: #DDE6EE;
+.pdftron-link-popup-inner button.pdftron-link-button-copy:active {
+    color: #1A4971 !important;
+    background-color: #DDE6EE !important;
 }
 
-.pdftron-link-popup-inner .pdftron-link-button-copy::before,
-.pdftron-link-popup-inner .pdftron-link-button-copy::after {
+.pdftron-link-popup-inner button.pdftron-link-button-copy::before,
+.pdftron-link-popup-inner button.pdftron-link-button-copy::after {
     display: block;
     opacity: 0;
     visibility: hidden;
     position: absolute;
 }
 
-.pdftron-link-popup-inner .pdftron-link-button-copy::before {
+.pdftron-link-popup-inner button.pdftron-link-button-copy::before {
     content: attr(data-title);
     top: 26px;
     left: -31px;
@@ -115,7 +127,7 @@
     white-space: nowrap;
 }
 
-.pdftron-link-popup-inner .pdftron-link-button-copy::after {
+.pdftron-link-popup-inner button.pdftron-link-button-copy::after {
     content: "";
     width: 0;
     height: 0;
@@ -127,8 +139,8 @@
     border-bottom: 6px solid #222;
 }
 
-.pdftron-link-popup-inner .pdftron-link-button-copy:hover::before,
-.pdftron-link-popup-inner .pdftron-link-button-copy:hover::after {
+.pdftron-link-popup-inner button.pdftron-link-button-copy:hover::before,
+.pdftron-link-popup-inner button.pdftron-link-button-copy:hover::after {
     visibility: visible;
     opacity: 1;
     transition: opacity .3s 1s ease-out;

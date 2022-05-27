@@ -145,16 +145,17 @@ const linkPreviewPopup = () => {
               return;
             }
 
-            if (parentStyle.overflowY === 'hidden') {
+            if (parentStyle.overflowY === 'hidden' || parentStyle.overflowY === 'auto') {
+              const parentOverflowY = parentStyle.overflowY;
               if (!parentElement.style.getPropertyValue('overflow')) {
                 // if getPropertyValue is empty then the value comes from a stylesheet, just need to remove the newly set property
                 undoFunctions.push(() => parentElement.style.removeProperty('overflow'));
               } else {
                 // if there's important in the value then reset it as is
                 if (!parentElement.style.getPropertyPriority('overflow')) {
-                  undoFunctions.push(() => parentElement.style.setProperty('overflow', 'hidden'));
+                  undoFunctions.push(() => parentElement.style.setProperty('overflow', parentOverflowY));
                 } else {
-                  undoFunctions.push(() => parentElement.style.setProperty('overflow', 'hidden', 'important'));
+                  undoFunctions.push(() => parentElement.style.setProperty('overflow', parentOverflowY, 'important'));
                 }
               }
               parentElement.style.setProperty('overflow', 'visible', 'important');
