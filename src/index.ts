@@ -241,8 +241,26 @@ const createServer = ({
 
       const pageTitle: string = document.title;
 
-      const faviconSelectors: NodeListOf<HTMLLinkElement> = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
-      const faviconUrl = faviconSelectors.length > 0 ? (faviconSelectors[0].href || '') : '';
+      const faviconValidURLs: string[] = [];
+      const faviconDataURLs: string[] = [];
+      const getAllFaviconURLs = (selectors: string) => {
+        document.querySelectorAll(selectors).forEach((el) => {
+          if (el.getAttribute('href')) {
+            // if favicon is a data URL, new URL() will return the same value
+            const { href: absoluteFaviconURL } = new URL(el.getAttribute('href'), linkToPreview);
+            // separate valid faviconURL and data faviconURL
+            if (isURLAbsolute(absoluteFaviconURL)) {
+              faviconValidURLs.push(absoluteFaviconURL);
+            } else {
+              faviconDataURLs.push(absoluteFaviconURL);
+            }
+          }
+        });
+      };
+      // prioritize [rel="icon"] over [rel="shortcut icon"];
+      getAllFaviconURLs('link[rel="icon"]');
+      getAllFaviconURLs('link[rel="shortcut icon"]');
+      const faviconUrl = faviconValidURLs[0] || faviconDataURLs[0] || '';
 
       const metaSelectors: NodeListOf<HTMLMetaElement> = document.querySelectorAll('meta[name="description"], meta[property="og:description"]');
       const metaDescription = metaSelectors.length > 0 ? (metaSelectors[0].content || '') : '';
