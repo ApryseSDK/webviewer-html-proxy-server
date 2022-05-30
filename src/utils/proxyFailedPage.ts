@@ -14,7 +14,6 @@ const getProxyFailedPage = (error?: Error) => {
           return origin;
         };
 
-        window.parent.postMessage({ type: 'proxyFinishLoading' }, getClientUrl());
         window.parent.postMessage({ type: 'proxyFinishFail', error: '${error}' }, getClientUrl());
       </script>
     </head>

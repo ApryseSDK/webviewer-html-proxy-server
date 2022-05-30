@@ -186,7 +186,7 @@ window.addEventListener('message', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  window.parent.postMessage({ type: 'proxyFinishLoading' }, getClientUrl());
+  window.parent.postMessage({ type: 'proxyFinishSuccess' }, getClientUrl());
 
   sendDataToClient();
 
