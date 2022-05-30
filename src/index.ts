@@ -23,7 +23,7 @@ import { isURLAbsolute, getCorrectHref } from './utils/isURLAbsolute';
 // @ts-ignore
 import debounceJS from './assets/debounceJS.js';
 // @ts-ignore
-import constants from './assets/constants.js';
+import shared from './assets/shared.js';
 // @ts-ignore
 import sendTextData from './assets/getTextData.js';
 // @ts-ignore
@@ -419,7 +419,7 @@ const createServer = ({
             const globalVarsScript = `<script type='text/javascript' id='pdftron-js'>window.PDFTron = {}; window.PDFTron.urlToProxy = '${cookiesUrl}';</script>`;
             const scriptTag = `
               <script type='text/javascript'>${debounceJS}</script>
-              <script type='text/javascript'>${constants}</script>
+              <script type='text/javascript'>${shared}</script>
               <script type='text/javascript'>${blockNavigation}</script>
               <script type='text/javascript'>${linkPreview}</script>
               <script type='text/javascript'>${sendTextData}</script>
