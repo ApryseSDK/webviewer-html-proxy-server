@@ -173,7 +173,7 @@ const getClientUrl = () => {
 const sendDataToClient = () => {
   const { selectionData, linkData } = getTextData(document.body);
   const iframeHeight = getPageHeight();
-  window.parent.postMessage({ key: 'selectionData', selectionData, linkData, iframeHeight }, getClientUrl());
+  window.parent.postMessage({ type: 'selectionData', selectionData, linkData, iframeHeight }, getClientUrl());
 };
 
 const debounceSendDataOnMutation = debounceJS(sendDataToClient, 500, false);
@@ -186,7 +186,7 @@ window.addEventListener('message', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  window.parent.postMessage({ key: 'proxyFinishLoading' }, getClientUrl());
+  window.parent.postMessage({ type: 'proxyFinishLoading' }, getClientUrl());
 
   sendDataToClient();
 
