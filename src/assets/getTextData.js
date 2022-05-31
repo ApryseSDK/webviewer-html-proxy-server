@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 const getTextData = (body) => {
   const traverseTextNode = (parentNode, struct, offsets, quads, str, linksArray) => {
     const range = document.createRange();
@@ -173,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const observer = new MutationObserver(() => {
     debounceSendDataOnMutation();
   });
+  /* eslint-disable-next-line no-undef */
   observer.observe(document.body, mutationObserverConfig);
 });
 

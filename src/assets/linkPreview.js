@@ -1,12 +1,8 @@
-/* eslint-disable no-console */
-/* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-unused-vars */
-
 const isURLAbsolute = (url) => {
   return url.indexOf('://') > 0 || url.indexOf('//') === 0;
 };
 
+/* eslint-disable-next-line */
 const copyOnClick = async (button, url) => {
   try {
     await navigator.clipboard.writeText(url);
@@ -16,15 +12,9 @@ const copyOnClick = async (button, url) => {
   }
 };
 
-
-const faviconEmptySpan = () => {
-  const emptySpan = document.createElement('span');
-  emptySpan.className = 'pdftron-link-favicon-empty';
-  return emptySpan;
-};
-
 const faviconEmptyString = '<span class="pdftron-link-favicon-empty"></span>';
 
+/* eslint-disable-next-line */
 const successLoadingImage = (img) => {
   img.previousSibling.remove();
   img.style.display = 'block';
@@ -115,6 +105,7 @@ const linkPreviewPopup = () => {
 
   // block navigation for suspicious <a> that don't have href or empty href: stubbing onclick
   // block navigation for all a tags that don't start with #
+  /* eslint-disable-next-line no-undef */
   document.querySelectorAll(linkSelectors).forEach((elem) => {
     // after href has already been modified
     const elementHref = elem.getAttribute('href');
@@ -138,7 +129,7 @@ const linkPreviewPopup = () => {
         let elemOriginalStyles = [];
         let undoFunctions = [];
 
-        const traverseToParentWithOverflowHidden = (targetElement) => {
+        const setParentsToOverflowVisible = (targetElement) => {
           const parentElement = targetElement?.parentElement;
           if (parentElement && parentElement.nodeType === Node.ELEMENT_NODE) {
             const parentStyle = window.getComputedStyle(parentElement);
@@ -163,7 +154,7 @@ const linkPreviewPopup = () => {
               parentElement.style.setProperty('overflow', 'visible', 'important');
             }
 
-            traverseToParentWithOverflowHidden(parentElement);
+            setParentsToOverflowVisible(parentElement);
           }
 
           return () => {
@@ -177,7 +168,7 @@ const linkPreviewPopup = () => {
               // on mouseenter, if the popup is displayed block and hidden, this intersectionRatio < 1 will happen and makes the hidden parents visible
               if (entry.intersectionRatio < 1 && entry.target.style.display === 'block') {
                 // start recursively traversing from parent of <a>, issue with https://www.keytrudahcp.com
-                undoOverflow = traverseToParentWithOverflowHidden(popupContainer.parentElement);
+                undoOverflow = setParentsToOverflowVisible(popupContainer.parentElement);
               }
 
               // on mouseleave, the popup is displayed none, this triggers the callback, and gives an intersectionRatio of 0. Only entry.intersectionRatio === 0 will happen
@@ -242,6 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const observer = new MutationObserver(() => {
     debounceLinkPreviewOnMutation();
   });
+  /* eslint-disable-next-line no-undef */
   observer.observe(document.body, mutationObserverConfig);
 });
 

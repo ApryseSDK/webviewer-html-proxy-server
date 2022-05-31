@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 const onKeydownCallback = (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
@@ -10,6 +9,7 @@ const blockNavigation = () => {
 
   // block navigation for suspicious <a> that don't have href or empty href: stubbing onclick
   // block navigation for all a tags that don't start with #
+  /* eslint-disable-next-line no-undef */
   document.querySelectorAll(linkSelectors).forEach((elem) => {
     // in subsequent debouncing, make sure to only run this for new <a>
     if (elem.dataset.pdftron !== 'pdftron') {
@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const observer = new MutationObserver(() => {
     debounceBlockNavigationOnMutation();
   });
+  /* eslint-disable-next-line no-undef */
   observer.observe(document.body, mutationObserverConfig);
 });
 

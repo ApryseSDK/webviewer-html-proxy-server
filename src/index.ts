@@ -417,7 +417,7 @@ const createServer = ({
               <style type='text/css'>${linkPreviewStyle}</style>
             `;
             const globalVarsScript = `<script type='text/javascript' id='pdftron-js'>window.PDFTron = {}; window.PDFTron.urlToProxy = '${cookiesUrl}';</script>`;
-            const scriptTag = `
+            const scriptTags = `
               <script type='text/javascript'>${debounceJS}</script>
               <script type='text/javascript'>${shared}</script>
               <script type='text/javascript'>${blockNavigation}</script>
@@ -433,7 +433,7 @@ const createServer = ({
 
               if (!/pdftron-js/.test(newBody.substring(0, headIndex))) {
                 // order: declare global var first, then debounce, then blocknavigation (switching all href) then send text/link data since the latter happens over and over again
-                newBody = newBody.slice(0, headIndex) + globalVarsScript + scriptTag + newBody.slice(headIndex);
+                newBody = newBody.slice(0, headIndex) + globalVarsScript + scriptTags + newBody.slice(headIndex);
               }
             }
 

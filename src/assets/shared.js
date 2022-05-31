@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-unused-vars */
+/* eslint-disable-next-line */
 const getPageHeight = () => {
   let sum = 0;
   // for some web pages, <html> and <body> have height: 100%
@@ -22,12 +21,14 @@ const getPageHeight = () => {
   return sum;
 };
 
+/* eslint-disable-next-line */
 const linkSelectors = `
   a:not([href]), 
   a[href=""], 
   a[href]:not([href^="#"]):not([href^="tel:"]):not([href^="sms:"]):not([href^="mailto:"]):not([href^="javascript:"])
 `;
 
+/* eslint-disable-next-line */
 const mutationObserverConfig = {
   attributes: false,
   childList: true,
