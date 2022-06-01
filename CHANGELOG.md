@@ -4,6 +4,7 @@
 - Updated puppeteer to v14.0.0
 - Updated link previews
 - Detected when the proxy failed
+- Compatible with [WebViewer-HTML](https://www.npmjs.com/package/@pdftron/webviewer-html) version 4.5.0 and above
 
 ## 1.8.0 (2022-04-29)
 
