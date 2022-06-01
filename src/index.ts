@@ -18,6 +18,7 @@ import type { PageDimensions, ProxyRequestOptions, PuppeteerOptions, ServerConfi
 import { isValidURL } from './utils/isValidURL';
 import { getHostPortSSL } from './utils/getHostPortSSL';
 import { isURLAbsolute, getCorrectHref } from './utils/isURLAbsolute';
+import { getProxyFailedPage } from './utils/proxyFailedPage';
 
 // import raw from assets
 // @ts-ignore
@@ -142,7 +143,8 @@ const createServer = ({
           // use 'domcontentloaded' https://github.com/puppeteer/puppeteer/issues/1666
           waitUntil: 'domcontentloaded', // defaults to load
         });
-        const validUrl: string = pageHTTPResponse.url();
+        // https://github.com/puppeteer/puppeteer/issues/2479 pageHTTPResponse could be null
+        const validUrl: string = pageHTTPResponse?.url() || url;
 
         // check again if puppeteer's validUrl will pass the test
         if (validUrl !== url && !isValidURL(validUrl, ALLOW_HTTP_PROXY)) {
@@ -160,7 +162,7 @@ const createServer = ({
         res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
       } finally {
         try {
-          await browser.close();
+          await browser?.close();
         } catch (err) {
           logger.error(`/pdftron-proxy browser.close ${url}`, err);
         }
@@ -218,7 +220,7 @@ const createServer = ({
         res.status(400).send({ errorMessage: 'Error taking screenshot from puppeteer' });
       } finally {
         try {
-          await browser.close();
+          await browser?.close();
         } catch (err) {
           logger.error(`/pdftron-download browser.close ${url}`, err);
         }
@@ -504,25 +506,12 @@ const createServer = ({
         // Sometimes error ECONNRESET from serverRequest happened after clientResponse (the proxy) was successfully sent
         // Happened on instagram.com
         if (!clientResponse.writableFinished) {
-          clientResponse.writeHead(400, {
-            'Content-Type': 'text/plain',
+          clientResponse.writeHead(200, {
+            'Content-Type': 'text/html',
             'Cross-Origin-Resource-Policy': 'cross-origin',
             'Cross-Origin-Embedder-Policy': 'credentialless',
           });
-          clientResponse.end(`${e}. Please enter a valid URL and try again.`);
-        }
-      });
-
-      serverRequest.on('timeout', () => {
-        serverRequest.end();
-        logger.error('Http request timeout');
-        if (!clientResponse.writableFinished) {
-          clientResponse.writeHead(400, {
-            'Content-Type': 'text/plain',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-            'Cross-Origin-Embedder-Policy': 'credentialless',
-          });
-          clientResponse.end('Http request timeout. Please enter a valid URL and try again.');
+          clientResponse.end(getProxyFailedPage(e));
         }
       });
 
