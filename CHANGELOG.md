@@ -1,7 +1,9 @@
-## 1.8.1 (2022-?-?)
+## 1.9.0 (2022-06-01)
 
 - Added eslint-typescript
 - Updated puppeteer to v14.0.0
+- Updated link previews
+- Detected when the proxy failed
 
 ## 1.8.0 (2022-04-29)
 
