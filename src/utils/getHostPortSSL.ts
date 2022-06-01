@@ -1,6 +1,6 @@
 import https from 'https';
 import http from 'http';
-import type { ServerHostPortSSL } from './data';
+import type { ServerHostPortSSL } from './types';
 
 const getHostPortSSL = (url: string, allowHTTPProxy = false): ServerHostPortSSL => {
   const {

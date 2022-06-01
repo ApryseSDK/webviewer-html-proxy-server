@@ -1,4 +1,4 @@
-import type { ServerConfigurationOptions } from './utils/data.js';
+import type { ServerConfigurationOptions } from './utils/types.js';
 /**
  * This is a proxy solution to use with WebViewer-HTML that allows loading external HTML web pages so that HTML pages can be annotated.
  * See the npm package on {@link https://www.npmjs.com/package/@pdftron/webviewer-html-proxy-server @pdftron/webviewer-html-proxy-server} for more information.
