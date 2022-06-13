@@ -49,12 +49,13 @@ const setPopupPosition = (linkElem, popupElem) => {
     y: elBoundingRectY,
     height: elBoundingRectHeight
   } = linkElem.getBoundingClientRect();
-  // popup maximum height is ~110px (depends on the font-family)
-  if ((elBoundingRectY + elBoundingRectHeight + 120) > getPageHeight()) {
+  const { borderTopWidth, borderBottomWidth } = window.getComputedStyle(linkElem);
+  // popup maximum height is ~120px (depends on the font-family)
+  if ((elBoundingRectY + elBoundingRectHeight + 130) > getPageHeight()) {
     // if the popup is not visible in the viewport then append on the top of the <a> tag
-    popupElem.style.bottom = `${elBoundingRectHeight - 2}px`;
+    popupElem.style.bottom = `${elBoundingRectHeight - parseFloat(borderBottomWidth) - 2}px`;
   } else {
-    popupElem.style.top = `${elBoundingRectHeight - 2}px`;
+    popupElem.style.top = `${elBoundingRectHeight - parseFloat(borderTopWidth) - 2}px`;
   }
   if ((elBoundingRectX + 260) > window.innerWidth) {
     popupElem.style.right = 0;
@@ -103,8 +104,6 @@ const linkPreviewPopup = () => {
     }
   };
 
-  // block navigation for suspicious <a> that don't have href or empty href: stubbing onclick
-  // block navigation for all a tags that don't start with #
   /* eslint-disable-next-line no-undef */
   document.querySelectorAll(linkSelectors).forEach((elem) => {
     // after href has already been modified
