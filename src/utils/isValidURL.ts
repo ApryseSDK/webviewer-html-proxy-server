@@ -44,7 +44,8 @@ const isValidURL = (queriedUrl: string, allowHTTPProxy = false): boolean => {
     const { hostname, port, protocol } = new URL(url);
 
     if (!allowHTTPProxy) {
-      if (protocol === 'http:') {
+      // Be suspicious of anything that supplies a port.
+      if (protocol === 'http:' || port) {
         return false;
       }
     }
@@ -57,11 +58,6 @@ const isValidURL = (queriedUrl: string, allowHTTPProxy = false): boolean => {
     // Confirm this is a domain not an IP address by checking the hostname
     // ends with a two-letter or three-letter domain.
     if (!(/[a-zA-Z]{2,3}$/.test(hostname))) {
-      return false;
-    }
-
-    // Be suspicious of anything that supplies a port.
-    if (port) {
       return false;
     }
 
