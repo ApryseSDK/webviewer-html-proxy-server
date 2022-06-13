@@ -285,7 +285,7 @@ const createServer = ({
         parsedPort,
         parsedSSL,
         pathname
-      } = getHostPortSSL(cookiesUrl);
+      } = getHostPortSSL(cookiesUrl, ALLOW_HTTP_PROXY);
 
       let newHostName = parsedHost;
       let newPath = clientRequest.url;
