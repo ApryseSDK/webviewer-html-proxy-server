@@ -59,3 +59,69 @@ HTMLProxyServer.createServer({
     ALLOW_HTTP_PROXY: true
 });
 ```
+
+## API Endpoints
+### Proxy a URL
+
+Show a single Account if current User has access permissions to it.
+
+**URL** : `/pdftron-proxy?url=`
+
+**Query Parameters** : `url=[string]` where `url` is a publically accessible link.
+
+**Method** : `GET`
+
+#### Success Response
+
+**Condition** : If the URL can be successfuly proxied
+
+**Code** : `200 OK`
+
+**Content example**
+
+```json
+{
+    "validUrl": "https://www.pdftron.com/"
+}
+```
+
+#### Error Responses
+
+**Condition** : If URL can not be proxied.
+
+**Code** : `400`
+
+**Content** : `{ errorMessage: 'Please enter a valid URL and try again.' }`
+
+### Download a PDF
+
+Show a single Account if current User has access permissions to it.
+
+**URL** : `/pdftron-download?url=`
+
+**Query Parameters** : `url=[string]` where `url` is a publically accessible link.
+
+**Method** : `GET`
+
+#### Success Response
+
+**Condition** : If URL can be loaded in puppeteer.
+
+**Code** : `200 OK`
+
+**Content example**
+
+```json
+{
+    "buffer": "<some buffer>",
+    "pageDimensions": { "width": 1440, "height": 770 }
+}
+```
+
+#### Error Responses
+
+**Condition** : If URL can not be loaded in puppeteer.
+
+**Code** : `400`
+
+**Content** : `{ errorMessage: 'Error taking screenshot from puppeteer' }`
