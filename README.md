@@ -63,8 +63,6 @@ HTMLProxyServer.createServer({
 ## API Endpoints
 ### Proxy a URL
 
-Show a single Account if current User has access permissions to it.
-
 **URL** : `/pdftron-proxy?url=`
 
 **Query Parameters** : `url=[string]` where `url` is a publically accessible link.
@@ -94,8 +92,6 @@ Show a single Account if current User has access permissions to it.
 **Content** : `{ errorMessage: 'Please enter a valid URL and try again.' }`
 
 ### Download a PDF
-
-Show a single Account if current User has access permissions to it.
 
 **URL** : `/pdftron-download?url=`
 
