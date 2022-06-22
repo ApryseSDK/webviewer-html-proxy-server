@@ -49,8 +49,13 @@
 .pdftron-link-popup-inner .pdftron-link-favicon-empty {
     height: 20px;
     border-radius: 4px;
-    background-color: #E0E0E0;
 }
+
+.pdftron-link-popup-inner .pdftron-link-favicon-empty,
+.pdftron-link-popup-inner .pdftron-link-favicon-empty:hover {
+    background-color: #E0E0E0 !important;
+}
+
 
 .pdftron-link-popup-inner a.pdftron-link-title {
     font-weight: 600 !important;
