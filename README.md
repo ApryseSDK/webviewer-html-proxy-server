@@ -65,7 +65,7 @@ HTMLProxyServer.createServer({
 
 **URL** : `/pdftron-proxy?url=`
 
-**Query Parameters** : `url=[string]` where `url` is a publically accessible link.
+**Query Parameters** : `url=[string]` where `url` is a publicly accessible link.
 
 **Method** : `GET`
 
@@ -95,7 +95,7 @@ HTMLProxyServer.createServer({
 
 **URL** : `/pdftron-download?url=`
 
-**Query Parameters** : `url=[string]` where `url` is a publically accessible link.
+**Query Parameters** : `url=[string]` where `url` is a publicly accessible link.
 
 **Method** : `GET`
 
