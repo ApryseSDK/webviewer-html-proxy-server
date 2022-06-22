@@ -109,7 +109,7 @@ HTMLProxyServer.createServer({
 
 ```json
 {
-    "buffer": "<some buffer>",
+    "buffer": "<some image buffer>",
     "pageDimensions": { "width": 1440, "height": 770 }
 }
 ```
