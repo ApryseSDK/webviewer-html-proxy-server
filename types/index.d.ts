@@ -18,7 +18,7 @@ import type { ServerConfigurationOptions } from './utils/types.js';
  * @param {express.CookieOptions} [options.COOKIE_SETTING]
  * An object to configure COOKIE. See {@link https://expressjs.com/en/api.html#res.cookie}
  * @param {boolean} [options.ALLOW_HTTP_PROXY]
- * Boolean containing value to allow for unsecured HTTP websites to be proxied.
+ * Boolean containing value to allow loading localhost files and for unsecured HTTP websites to be proxied.
  * @returns {void}
  * @example
  * const HTMLProxyServer = require('@pdftron/webviewer-html-proxy-server');
