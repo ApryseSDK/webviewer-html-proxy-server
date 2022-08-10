@@ -56,7 +56,7 @@ import linkPreviewStyle from './assets/linkPreview.css';
  * @param {express.CookieOptions} [options.COOKIE_SETTING]
  * An object to configure COOKIE. See {@link https://expressjs.com/en/api.html#res.cookie}
  * @param {boolean} [options.ALLOW_HTTP_PROXY]
- * Boolean containing value to allow for unsecured HTTP websites to be proxied.
+ * Boolean containing value to allow loading localhost files and for unsecured HTTP websites to be proxied.
  * @returns {void}
  * @example
  * const HTMLProxyServer = require('@pdftron/webviewer-html-proxy-server');
@@ -71,7 +71,7 @@ const createServer = ({
   PORT,
   CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true },
   COOKIE_SETTING = { sameSite: 'none', secure: true },
-  ALLOW_HTTP_PROXY = false
+  ALLOW_HTTP_PROXY = true
 }: ServerConfigurationOptions): void => {
   const { align, colorize, combine, printf, timestamp } = format;
   const logger = createLogger({
