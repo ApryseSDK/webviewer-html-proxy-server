@@ -70,7 +70,7 @@ const createServer = ({
   SERVER_ROOT,
   PORT,
   CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true },
-  COOKIE_SETTING = { sameSite: 'none', secure: true },
+  COOKIE_SETTING = { },
   ALLOW_HTTP_PROXY = true
 }: ServerConfigurationOptions): void => {
   const { align, colorize, combine, printf, timestamp } = format;
@@ -278,6 +278,7 @@ const createServer = ({
   // // TAKEN FROM: https://stackoverflow.com/a/63602976
   app.use('/', (clientRequest: Request, clientResponse: Response) => {
     const cookiesUrl: string = clientRequest.cookies.pdftron_proxy_sid;
+    logger.info(`Cookies ${cookiesUrl}`);
     // check again for all requests that go through the proxy server
     if (cookiesUrl && isValidURL(cookiesUrl, ALLOW_HTTP_PROXY)) {
       const {
