@@ -1,6 +1,6 @@
 {
   "name": "@pdftron/webviewer-html-proxy-server",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "description": "This is a proxy server to use with @pdftron/webviewer-html",
   "main": "dist/main.js",
   "author": "PDFTron Systems Inc.",
@@ -15,6 +15,7 @@
     "release-patch": "npm version patch && npm publish --access public",
     "release-minor": "npm version minor && npm publish --access public",
     "release-major": "npm version major && npm publish --access public",
+    "prepublishOnly": "npm run build && npm run build-doc",
     "postpublish": "git push"
   },
   "dependencies": {
