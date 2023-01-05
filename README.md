@@ -1,6 +1,10 @@
 # Webviewer Html Proxy Server
 This is a proxy server to use with [HTML sample by PDFTron](https://github.com/PDFTron/webviewer-html-annotate-proxy)
 
+# Disclaimer
+
+This project is experimental. A proxy server is used to serve webpage assets. This is done to get around various security issues, when loading a webpage in an iframe. This works for a good amount of pages but there are many exceptions. If you have a subset of web pages that you would like to support then we recommend forking this repository and making the necessary fixes. We won't be making those changes because it would likely result in other pages failing.
+
 ## Install
 
 ```
