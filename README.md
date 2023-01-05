@@ -1,6 +1,10 @@
 # Webviewer Html Proxy Server
 This is a proxy server to use with [HTML sample by PDFTron](https://github.com/PDFTron/webviewer-html-annotate-proxy)
 
+# Disclaimer
+
+The code is open source. It can be modified and customized to suit your needs, as the proxy technology can't guarantee to accurately proxy 100% of all the websites out there.
+
 ## Install
 
 ```
