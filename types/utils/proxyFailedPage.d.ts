@@ -1,2 +1,2 @@
-declare const getProxyFailedPage: (error?: Error) => string;
+declare const getProxyFailedPage: (error?: string) => string;
 export { getProxyFailedPage };

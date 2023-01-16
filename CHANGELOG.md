@@ -1,3 +1,7 @@
+## 1.10.0 (2023-01-?)
+
+- Add support for custom HTTP headers
+
 ## 1.9.0 (2022-06-01)
 
 - Added eslint-typescript
