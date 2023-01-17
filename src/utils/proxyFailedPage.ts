@@ -1,4 +1,4 @@
-const getProxyFailedPage = (error?: Error) => {
+const getProxyFailedPage = (error?: string) => {
   return `
     <!DOCTYPE html>
     <html lang="en">
