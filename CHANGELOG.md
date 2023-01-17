@@ -1,4 +1,4 @@
-## 1.10.0 (2023-01-?)
+## 1.9.6 (2023-01-17)
 
 - Add support for custom HTTP headers
 
