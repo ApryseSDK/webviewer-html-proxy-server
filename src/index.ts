@@ -215,10 +215,12 @@ const createServer = ({
               }
             }
           });
+          const bodyHeight = document.body.scrollHeight || document.body.clientHeight || 0;
+          const pageHeight = bodyHeight > 0 && bodyHeight > sum ? bodyHeight : sum;
           return {
             width: document.body.scrollWidth || document.body.clientWidth || 1440,
             // sum can be less than defaultViewport
-            height: sum > 770 ? sum : 770,
+            height: pageHeight > 770 ? pageHeight : 770,
           };
         });
 

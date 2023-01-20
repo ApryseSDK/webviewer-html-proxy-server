@@ -18,7 +18,8 @@ const getPageHeight = () => {
       }
     }
   });
-  return sum;
+  const bodyHeight = document.body.scrollHeight || document.body.clientHeight || 0;
+  return bodyHeight > 0 && bodyHeight > sum ? bodyHeight : sum;
 };
 
 /* eslint-disable-next-line */
