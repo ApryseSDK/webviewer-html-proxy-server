@@ -1,3 +1,7 @@
+## 1.9.8 (2023-01-26)
+
+- Update express package
+
 ## 1.9.7 (2023-01-20)
 
 - Improved page height calculation
