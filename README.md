@@ -13,9 +13,12 @@ npm install @pdftron/webviewer-html-proxy-server
 
 ## How to use
 
-Call the `createServer` function in your server component and pass in an object that includes `SERVER_ROOT` and `PORT`. You can, optionally, pass in `CORS_OPTIONS` - an object to configure CORS, `COOKIE_SETTING` - an object to configure COOKIE and `ALLOW_HTTP_PROXY`, a boolean value to allow loading localhost files and for unsecured HTTP websites to be proxied.
+Call the `createServer` function in your server component and pass in an object that includes `SERVER_ROOT` and `PORT`. You can, optionally, pass in 
+- `CORS_OPTIONS`: an object to configure CORS, see: https://expressjs.com/en/resources/middleware/cors.html
+- `COOKIE_SETTING`: an object to configure COOKIE, see https://expressjs.com/en/api.html#res.cookie
+- `ALLOW_POTENTIALLY_UNSAFE_URL`, a boolean value to disable URL validation. Setting this to true will override `ALLOW_HTTP_PROXY`
+- `ALLOW_HTTP_PROXY`, a boolean value to allow loading localhost files and for unsecured HTTP websites to be proxied
 
-See: https://expressjs.com/en/resources/middleware/cors.html and https://expressjs.com/en/api.html#res.cookie
 
 ## Example
 ```javascript
@@ -54,12 +57,23 @@ HTMLProxyServer.createServer({
 });
 ```
 
+Setting `ALLOW_POTENTIALLY_UNSAFE_URL` example:
+
+```javascript
+HTMLProxyServer.createServer({
+    SERVER_ROOT: `http://localhost`,
+    PORT: 3100,
+    ALLOW_POTENTIALLY_UNSAFE_URL: true
+});
+```
+
 Setting `ALLOW_HTTP_PROXY` example:
 
 ```javascript
 HTMLProxyServer.createServer({
     SERVER_ROOT: `http://localhost`,
     PORT: 3100,
+    ALLOW_POTENTIALLY_UNSAFE_URL: false,
     ALLOW_HTTP_PROXY: true
 });
 ```

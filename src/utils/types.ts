@@ -10,6 +10,7 @@ export type ServerConfigurationOptions = {
   PORT: number;
   CORS_OPTIONS?: CorsOptions;
   COOKIE_SETTING?: CookieOptions;
+  ALLOW_POTENTIALLY_UNSAFE_URL?: boolean;
   ALLOW_HTTP_PROXY?: boolean;
 }
 

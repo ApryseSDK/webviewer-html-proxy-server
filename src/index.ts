@@ -55,6 +55,8 @@ import linkPreviewStyle from './assets/linkPreview.css';
  * An object to configure CORS. See {@link https://expressjs.com/en/resources/middleware/cors.html}
  * @param {express.CookieOptions} [options.COOKIE_SETTING]
  * An object to configure COOKIE. See {@link https://expressjs.com/en/api.html#res.cookie}
+ * @param {boolean} [options.ALLOW_POTENTIALLY_UNSAFE_URL]
+ * Boolean containing value to disable URL validation. Setting this to true will override ALLOW_HTTP_PROXY.
  * @param {boolean} [options.ALLOW_HTTP_PROXY]
  * Boolean containing value to allow loading localhost files and for unsecured HTTP websites to be proxied.
  * @returns {void}
@@ -71,6 +73,7 @@ const createServer = ({
   PORT,
   CORS_OPTIONS = { origin: `${SERVER_ROOT}:3000`, credentials: true },
   COOKIE_SETTING = {},
+  ALLOW_POTENTIALLY_UNSAFE_URL = false,
   ALLOW_HTTP_PROXY = true
 }: ServerConfigurationOptions): void => {
   const { align, colorize, combine, printf, timestamp } = format;
@@ -104,7 +107,9 @@ const createServer = ({
     ]
   });
 
-  if (ALLOW_HTTP_PROXY) {
+  if (ALLOW_POTENTIALLY_UNSAFE_URL) {
+    logger.warn('*** URL validation is now disabled. Beware of phishing attacks.');
+  } else if (ALLOW_HTTP_PROXY) {
     logger.warn('*** Unsecured HTTP websites can now be proxied. Beware of ssrf attacks. See more here https://brightsec.com/blog/ssrf-server-side-request-forgery/');
   }
 
@@ -130,7 +135,7 @@ const createServer = ({
     // this is the url retrieved from the input
     const url = `${req.query.url}`;
     // ****** first check for malicious URLs
-    if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
+    if (!isValidURL(url, ALLOW_HTTP_PROXY, ALLOW_POTENTIALLY_UNSAFE_URL)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
       // ****** second check for puppeteer being able to goto url
@@ -154,7 +159,7 @@ const createServer = ({
         const validUrl: string = pageHTTPResponse?.url() || url;
 
         // check again if puppeteer's validUrl will pass the test
-        if (validUrl !== url && !isValidURL(validUrl, ALLOW_HTTP_PROXY)) {
+        if (validUrl !== url && !isValidURL(validUrl, ALLOW_HTTP_PROXY, ALLOW_POTENTIALLY_UNSAFE_URL)) {
           res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
         } else {
           logger.info(`********** NEW REQUEST: ${validUrl}`);
@@ -183,7 +188,7 @@ const createServer = ({
   // need to be placed before app.use('/');
   app.get('/pdftron-download', async (req: Request, res: Response) => {
     const url = `${req.query.url}`;
-    if (!isValidURL(url, ALLOW_HTTP_PROXY)) {
+    if (!isValidURL(url, ALLOW_HTTP_PROXY, ALLOW_POTENTIALLY_UNSAFE_URL)) {
       res.status(400).send({ errorMessage: 'Please enter a valid URL and try again.' });
     } else {
       logger.info(`********** DOWNLOAD: ${url}`);
@@ -294,7 +299,7 @@ const createServer = ({
     const cookiesHeadersObject = cookiesHeaders ? JSON.parse(cookiesHeaders) : {};
     // logger.info(`Cookies ${cookiesUrl}`);
     // check again for all requests that go through the proxy server
-    if (cookiesUrl && isValidURL(cookiesUrl, ALLOW_HTTP_PROXY)) {
+    if (cookiesUrl && isValidURL(cookiesUrl, ALLOW_HTTP_PROXY, ALLOW_POTENTIALLY_UNSAFE_URL)) {
       const {
         parsedHost,
         parsedPort,
