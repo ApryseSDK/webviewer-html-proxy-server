@@ -17,6 +17,8 @@ import type { ServerConfigurationOptions } from './utils/types.js';
  * An object to configure CORS. See {@link https://expressjs.com/en/resources/middleware/cors.html}
  * @param {express.CookieOptions} [options.COOKIE_SETTING]
  * An object to configure COOKIE. See {@link https://expressjs.com/en/api.html#res.cookie}
+ * @param {boolean} [options.ALLOW_POTENTIALLY_UNSAFE_URL]
+ * Boolean containing value to disable URL validation. Setting this to true will override ALLOW_HTTP_PROXY.
  * @param {boolean} [options.ALLOW_HTTP_PROXY]
  * Boolean containing value to allow loading localhost files and for unsecured HTTP websites to be proxied.
  * @returns {void}
@@ -27,5 +29,5 @@ import type { ServerConfigurationOptions } from './utils/types.js';
     PORT: 3100
    });
  */
-declare const createServer: ({ SERVER_ROOT, PORT, CORS_OPTIONS, COOKIE_SETTING, ALLOW_HTTP_PROXY }: ServerConfigurationOptions) => void;
+declare const createServer: ({ SERVER_ROOT, PORT, CORS_OPTIONS, COOKIE_SETTING, ALLOW_POTENTIALLY_UNSAFE_URL, ALLOW_HTTP_PROXY }: ServerConfigurationOptions) => void;
 export { createServer };

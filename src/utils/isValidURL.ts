@@ -31,7 +31,11 @@ const STARTSWITH_BLOCKLIST = [
   'localtest',
 ];
 
-const isValidURL = (queriedUrl: string, allowHTTPProxy = false): boolean => {
+const isValidURL = (queriedUrl: string, allowHTTPProxy = false, allowPotentiallyUnsafeURL = false): boolean => {
+  if (allowPotentiallyUnsafeURL) {
+    return true;
+  }
+
   // check for lowercase here and not outside as some URLs are uppercased
   const url = queriedUrl.toLowerCase();
 
