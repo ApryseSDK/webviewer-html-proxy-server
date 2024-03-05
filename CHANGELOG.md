@@ -1,3 +1,7 @@
+## 1.10.0 (2024-03-04)
+
+- Update express package
+
 ## 1.9.8 (2023-01-26)
 
 - Update express package
